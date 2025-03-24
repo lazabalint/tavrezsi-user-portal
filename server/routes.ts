@@ -67,12 +67,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
       
-      const user = await storage.createUser(userData);
+      // Import the hashPassword function from auth
+      const { hashPassword } = await import('./auth');
+      
+      // Hash the password before storing
+      const hashedUserData = {
+        ...userData,
+        password: await hashPassword(userData.password)
+      };
+      
+      const user = await storage.createUser(hashedUserData);
       
       // Don't send password
       const { password, ...userWithoutPassword } = user;
       res.status(201).json(userWithoutPassword);
     } catch (err) {
+      console.error("Error creating user:", err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid user data", errors: err.errors });
       }
