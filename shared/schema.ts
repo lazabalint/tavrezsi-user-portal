@@ -74,6 +74,16 @@ export const propertyTenants = pgTable("property_tenants", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
+// Password reset tokens table
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  token: text("token").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isUsed: boolean("is_used").notNull().default(false),
+});
+
 // Zod schemas for insertion
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -108,6 +118,12 @@ export const insertPropertyTenantSchema = createInsertSchema(propertyTenants).om
   startDate: true,
 });
 
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({
+  id: true,
+  createdAt: true,
+  isUsed: true,
+});
+
 // Export types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -126,3 +142,6 @@ export type InsertCorrectionRequest = z.infer<typeof insertCorrectionRequestSche
 
 export type PropertyTenant = typeof propertyTenants.$inferSelect;
 export type InsertPropertyTenant = z.infer<typeof insertPropertyTenantSchema>;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
