@@ -105,8 +105,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         properties = await storage.listProperties();
       } else if (req.user?.role === "owner") {
         console.log("Owner user, fetching properties for owner ID:", req.user.id);
-        // Owner can only see their own properties
-        properties = await storage.listProperties(req.user.id);
+        // Owner can only see their own properties - ensure we're using the correct user ID
+        const ownerId = req.user.id;
+        properties = await storage.listProperties(ownerId);
       } else {
         console.log("Tenant user, fetching associated properties");
         // For tenants, get properties where they are associated via property_tenants
