@@ -55,6 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SafeUser) => {
+      // Reset entire cache to prevent data leakage between users
+      queryClient.clear();
+      // Then set the new user data
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Sikeres bejelentkezés",
@@ -78,6 +81,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return await res.json();
     },
     onSuccess: (user: SafeUser) => {
+      // Reset entire cache to prevent data leakage between users
+      queryClient.clear();
+      // Then set the new user data
       queryClient.setQueryData(["/api/user"], user);
       toast({
         title: "Sikeres regisztráció",
@@ -98,6 +104,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
+      // Reset entire cache to prevent data leakage between users
+      queryClient.clear();
+      // Then set the user data to null
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "Sikeres kijelentkezés",
