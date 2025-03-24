@@ -89,7 +89,7 @@ export class DatabaseStorage implements IStorage {
 
   async listUsers(role?: string): Promise<User[]> {
     if (role) {
-      return await db.select().from(users).where(eq(users.role, role));
+      return await db.select().from(users).where(eq(users.role, role as any));
     }
     return await db.select().from(users);
   }
@@ -443,5 +443,5 @@ export class MemStorage implements IStorage {
 }
 
 // Create and export storage instance
-// Use in-memory storage since we're having database connectivity issues
-export const storage = new MemStorage();
+// Use database storage as we have proper connectivity to Neon serverless
+export const storage = new DatabaseStorage();
