@@ -18,11 +18,6 @@ export default function AuthPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("login");
 
-  // Redirect if already logged in
-  if (user) {
-    return <Redirect to="/" />;
-  }
-
   // Login form
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -44,6 +39,11 @@ export default function AuthPage() {
       role: "tenant",
     },
   });
+  
+  // Redirect if already logged in
+  if (user) {
+    return <Redirect to="/" />;
+  }
 
   const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
     loginMutation.mutate(values);
