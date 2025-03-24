@@ -34,8 +34,8 @@ function Router() {
       <ProtectedRoute path="/reports" component={ReportsPage} />
       <ProtectedRoute path="/users" component={UsersPage} roles={["admin"]} />
       <ProtectedRoute path="/add-user" component={AddUserPage} roles={["admin"]} />
-      <ProtectedRoute path="/add-property" component={AddPropertyPage} roles={["admin", "owner"]} />
-      <ProtectedRoute path="/add-meter" component={AddMeterPage} roles={["admin", "owner"]} />
+      <ProtectedRoute path="/add-property" component={AddPropertyPage} roles={["admin"]} />
+      <ProtectedRoute path="/add-meter" component={AddMeterPage} roles={["admin"]} />
       <ProtectedRoute path="/permissions" component={PermissionsPage} roles={["admin"]} />
       <Route component={NotFound} />
     </Switch>

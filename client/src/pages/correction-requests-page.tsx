@@ -9,7 +9,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
-import { Wrench, Check, X, AlertTriangle, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Wrench, Check, X, AlertTriangle, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
@@ -105,7 +105,17 @@ export default function CorrectionRequestsPage() {
   };
 
   return (
-    <DashboardLayout title="Javítási kérelmek" description="Óraállás korrekciós kérelmek kezelése">
+    <DashboardLayout title="Javítási kérelmek" description="Javítási kérelmek kezelése">
+      <div className="space-y-4">
+        {user?.role === 'admin' && (
+          <div className="flex justify-end">
+            <Button onClick={() => setLocation('/add-correction-request')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Új javítási kérelem
+            </Button>
+          </div>
+        )}
+      </div>
       <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
         <TabsList className="grid w-full grid-cols-3 mb-4">
           <TabsTrigger value="all">Összes kérelem</TabsTrigger>

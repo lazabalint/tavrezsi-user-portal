@@ -182,10 +182,12 @@ export default function ReadingsPage() {
               <History className="mr-2 h-4 w-4" />
               Történet
             </Button>
-            <Button onClick={() => setShowNewReadingDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Új leolvasás
-            </Button>
+            {(user?.role === 'admin' || user?.role === 'tenant') && (
+              <Button onClick={() => setShowNewReadingDialog(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Új leolvasás
+              </Button>
+            )}
           </div>
         </div>
       </div>

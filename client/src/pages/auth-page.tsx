@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useAuth, loginSchema, registerSchema } from "@/hooks/use-auth";
+import { useAuth, loginSchema } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,7 +11,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Redirect } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Dialog,
   DialogContent,
@@ -30,7 +29,7 @@ const passwordResetSchema = z.object({
 });
 
 export default function AuthPage() {
-  const { user, loginMutation, registerMutation } = useAuth();
+  const { user, loginMutation } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("login");
   const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
@@ -51,19 +50,6 @@ export default function AuthPage() {
       password: "",
     },
   });
-
-  // Register form
-  const registerForm = useForm<z.infer<typeof registerSchema>>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-      confirmPassword: "",
-      email: "",
-      name: "",
-      role: "tenant",
-    },
-  });
   
   // Redirect if already logged in
   if (user) {
@@ -72,10 +58,6 @@ export default function AuthPage() {
 
   const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
     loginMutation.mutate(values);
-  };
-
-  const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
-    registerMutation.mutate(values);
   };
   
   // Jelszó-visszaállítás kezelő függvény
@@ -129,9 +111,8 @@ export default function AuthPage() {
           </div>
 
           <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className="grid w-full grid-cols-1 mb-4">
               <TabsTrigger value="login">Bejelentkezés</TabsTrigger>
-              <TabsTrigger value="register">Regisztráció</TabsTrigger>
             </TabsList>
 
             {/* Login Tab */}
@@ -227,121 +208,6 @@ export default function AuthPage() {
                 </Form>
               </Card>
             </TabsContent>
-
-            {/* Register Tab */}
-            <TabsContent value="register">
-              <Card>
-                <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
-                    <CardContent className="space-y-4 pt-5">
-                      <FormField
-                        control={registerForm.control}
-                        name="username"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Felhasználónév</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Teljes név</FormLabel>
-                            <FormControl>
-                              <Input {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="email"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Email cím</FormLabel>
-                            <FormControl>
-                              <Input type="email" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="role"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Szerepkör</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Válassz szerepkört" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="tenant">Bérlő</SelectItem>
-                                <SelectItem value="owner">Tulajdonos</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="password"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Jelszó</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={registerForm.control}
-                        name="confirmPassword"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Jelszó megerősítése</FormLabel>
-                            <FormControl>
-                              <Input type="password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </CardContent>
-                    <CardFooter>
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={registerMutation.isPending}
-                      >
-                        {registerMutation.isPending ? "Regisztráció..." : "Regisztráció"}
-                      </Button>
-                    </CardFooter>
-                  </form>
-                </Form>
-              </Card>
-            </TabsContent>
           </Tabs>
         </div>
       </div>
@@ -384,8 +250,8 @@ export default function AuthPage() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-xl font-semibold mb-1">Biztonságos adatkezelés</h3>
-                <p>Szerepkör alapú hozzáférés az adatokhoz</p>
+                <h3 className="text-xl font-semibold mb-1">Bérlők kezelése</h3>
+                <p>Az ingatlanban lakó bérlőknek is hozzáférést adhat az óraállások ellenőrzéséhez</p>
               </div>
             </div>
           </div>

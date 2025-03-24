@@ -323,8 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (req.user?.role !== "admin" && 
-          !(req.user?.role === "owner" && property.ownerId === req.user.id) &&
-          !(await isTenantOfProperty(req.user!.id, property.id))) {
+          !(req.user?.role === "tenant" && await isTenantOfProperty(req.user!.id, property.id))) {
         return res.status(403).json({ message: "You don't have permission to submit readings for this meter" });
       }
       

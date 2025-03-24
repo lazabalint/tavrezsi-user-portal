@@ -35,8 +35,8 @@ export default function MetersPage() {
 
   // Fetch meters for selected property
   const { data: meters, isLoading: metersLoading } = useQuery<Meter[]>({
-    queryKey: ['/api/meters', selectedPropertyId ? `propertyId=${selectedPropertyId}` : null],
-    enabled: !!selectedPropertyId,
+    queryKey: ['/api/meters'],
+    enabled: user?.role === 'admin',
   });
 
   // Delete meter mutation
@@ -97,35 +97,37 @@ export default function MetersPage() {
     : null;
 
   return (
-    <DashboardLayout title="Mérőórák" description="Mérőórák kezelése és áttekintése">
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
-          <div className="w-full md:w-1/3">
-            {propertiesLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select value={selectedPropertyId} onValueChange={handlePropertyChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Válasszon ingatlant" />
-                </SelectTrigger>
-                <SelectContent>
-                  {properties?.map((property) => (
-                    <SelectItem key={property.id} value={property.id.toString()}>
-                      {property.name}, {property.address}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          {(user?.role === 'admin' || user?.role === 'owner') && (
-            <Button asChild>
-              <Link href="/add-meter">
-                <Plus className="mr-2 h-4 w-4" />
-                Új mérőóra
-              </Link>
+    <DashboardLayout title="Órák" description="Órák kezelése">
+      <div className="space-y-4">
+        {user?.role === 'admin' && (
+          <div className="flex justify-end">
+            <Button onClick={() => setLocation('/add-meter')}>
+              <Plus className="w-4 h-4 mr-2" />
+              Új óra
             </Button>
-          )}
+          </div>
+        )}
+        <div className="mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+            <div className="w-full md:w-1/3">
+              {propertiesLoading ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select value={selectedPropertyId} onValueChange={handlePropertyChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Válasszon ingatlant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {properties?.map((property) => (
+                      <SelectItem key={property.id} value={property.id.toString()}>
+                        {property.name}, {property.address}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

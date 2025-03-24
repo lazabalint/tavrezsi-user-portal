@@ -18,8 +18,9 @@ export default function PropertiesPage() {
   const [deletePropertyId, setDeletePropertyId] = useState<number | null>(null);
 
   // Fetch properties, with refetch on user change
-  const { data: properties, isLoading } = useQuery<Property[]>({
-    queryKey: ['/api/properties', user?.id, user?.role], // Include user in the key to refetch on user change
+  const { data: properties, isLoading } = useQuery({
+    queryKey: ['/api/properties'],
+    enabled: user?.role === 'admin',
   });
 
   // Fetch users (for owners)
@@ -63,16 +64,15 @@ export default function PropertiesPage() {
   };
 
   return (
-    <DashboardLayout title="Ingatlanok" description="Ingatlanok kezelése és áttekintése">
-      <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-lg font-medium">Ingatlanok listája</h2>
+    <DashboardLayout title="Ingatlanok" description="Ingatlanok kezelése">
+      <div className="space-y-4">
         {user?.role === 'admin' && (
-          <Button asChild>
-            <Link href="/add-property">
-              <Plus className="mr-2 h-4 w-4" />
+          <div className="flex justify-end">
+            <Button onClick={() => setLocation('/add-property')}>
+              <Plus className="w-4 h-4 mr-2" />
               Új ingatlan
-            </Link>
-          </Button>
+            </Button>
+          </div>
         )}
       </div>
 

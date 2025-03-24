@@ -55,7 +55,7 @@ export default function AddUserPage() {
     mutationFn: async (values: z.infer<typeof addUserSchema>) => {
       // Remove confirmPassword before sending
       const { confirmPassword, ...userData } = values;
-      const res = await apiRequest("POST", "/api/users", userData);
+      const res = await apiRequest("/api/users", "POST", userData);
       return await res.json();
     },
     onSuccess: () => {
