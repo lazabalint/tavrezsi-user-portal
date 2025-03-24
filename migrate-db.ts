@@ -2,13 +2,8 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { neon, neonConfig } from '@neondatabase/serverless';
 import * as schema from './shared/schema';
 
-// Database connection string from environment variable
-const connectionString = process.env.DATABASE_URL;
-
-if (!connectionString) {
-  console.error('DATABASE_URL environment variable is not set');
-  process.exit(1);
-}
+// Hardcoded database connection string to ensure consistency
+const connectionString = "postgresql://tavrezsi-main_owner:npg_GOaANP7ZXv4w@ep-long-dream-a26etgjh-pooler.eu-central-1.aws.neon.tech/tavrezsi-main?sslmode=require";
 
 const main = async () => {
   console.log('Starting database migration...');

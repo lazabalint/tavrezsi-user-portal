@@ -4,16 +4,15 @@ import { neon, neonConfig } from "@neondatabase/serverless";
 // Flag to track the state of the database connection
 let db: any;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL not set");
-}
+// Hardcoded database connection string to ensure consistency
+const DATABASE_URL = "postgresql://tavrezsi-main_owner:npg_GOaANP7ZXv4w@ep-long-dream-a26etgjh-pooler.eu-central-1.aws.neon.tech/tavrezsi-main?sslmode=require";
 
 try {
   // Configure neon to work in serverless environments
   neonConfig.fetchConnectionCache = true;
   
   // Use the neon serverless driver specifically designed for serverless environments
-  const client = neon(process.env.DATABASE_URL!);
+  const client = neon(DATABASE_URL);
   
   // Use drizzle with neon-http instead of neon-serverless
   db = drizzle(client);
