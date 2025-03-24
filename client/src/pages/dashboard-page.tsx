@@ -187,42 +187,51 @@ export default function DashboardPage() {
             <CardTitle>Havi összegzés</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-500">Villany</span>
-                <span className="font-medium">158 kWh</span>
+            {properties && properties.length > 0 ? (
+              <div>
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-500">Villany</span>
+                    <span className="font-medium">158 kWh</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-blue-500 h-2 rounded-full" style={{width: '65%'}}></div>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-500">Gáz</span>
+                    <span className="font-medium">42 m³</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-orange-500 h-2 rounded-full" style={{width: '30%'}}></div>
+                  </div>
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-gray-500">Víz</span>
+                    <span className="font-medium">6.2 m³</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-cyan-500 h-2 rounded-full" style={{width: '45%'}}></div>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Változás előző hónaphoz</span>
+                    <span className="text-green-600 font-medium flex items-center">
+                      <ArrowDown className="mr-1 h-4 w-4" />
+                      8.3%
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{width: '65%'}}></div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-4">Nincs megjeleníthető adat</p>
+                <p className="text-sm text-gray-400">Adjon hozzá ingatlanokat az adatok megjelenítéséhez</p>
               </div>
-            </div>
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-500">Gáz</span>
-                <span className="font-medium">42 m³</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-orange-500 h-2 rounded-full" style={{width: '30%'}}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-gray-500">Víz</span>
-                <span className="font-medium">6.2 m³</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-cyan-500 h-2 rounded-full" style={{width: '45%'}}></div>
-              </div>
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Változás előző hónaphoz</span>
-                <span className="text-green-600 font-medium flex items-center">
-                  <ArrowDown className="mr-1 h-4 w-4" />
-                  8.3%
-                </span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
         
@@ -232,34 +241,45 @@ export default function DashboardPage() {
             <CardTitle>Feladatok</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <ul className="divide-y divide-gray-200">
-              <li className="py-3 flex items-start">
-                <AlertTriangle className="text-amber-500 mr-3 mt-0.5 h-5 w-5" />
-                <div>
-                  <p className="font-medium">Korrekciós kérelem elbírálása</p>
-                  <p className="text-sm text-gray-500">Budapest, Kossuth u. 1. - Vízóra</p>
+            {properties && properties.length > 0 ? (
+              <div>
+                <ul className="divide-y divide-gray-200">
+                  {properties.length > 0 && (
+                    <li className="py-3 flex items-start">
+                      <Check className="text-green-500 mr-3 mt-0.5 h-5 w-5" />
+                      <div>
+                        <p className="font-medium">Sikeres csatlakozás</p>
+                        <p className="text-sm text-gray-500">Az ingatlanok sikeresen betöltve</p>
+                      </div>
+                    </li>
+                  )}
+                  <li className="py-3 flex items-start">
+                    <AlertTriangle className="text-amber-500 mr-3 mt-0.5 h-5 w-5" />
+                    <div>
+                      <p className="font-medium">Folyamatban lévő leolvasások</p>
+                      <p className="text-sm text-gray-500">Havi leolvasások esedékesek</p>
+                    </div>
+                  </li>
+                  <li className="py-3 flex items-start">
+                    <AlertCircle className="text-blue-500 mr-3 mt-0.5 h-5 w-5" />
+                    <div>
+                      <p className="font-medium">Rendszer információ</p>
+                      <p className="text-sm text-gray-500">Frissített jogosultságkezelés</p>
+                    </div>
+                  </li>
+                </ul>
+                <div className="mt-2 text-center">
+                  <Button variant="link" className="text-primary">
+                    Összes megtekintése
+                  </Button>
                 </div>
-              </li>
-              <li className="py-3 flex items-start">
-                <AlertCircle className="text-red-500 mr-3 mt-0.5 h-5 w-5" />
-                <div>
-                  <p className="font-medium">Lejárt hitelesítés</p>
-                  <p className="text-sm text-gray-500">Debrecen, Petőfi u. 22. - Gázóra</p>
-                </div>
-              </li>
-              <li className="py-3 flex items-start">
-                <Check className="text-green-500 mr-3 mt-0.5 h-5 w-5" />
-                <div>
-                  <p className="font-medium">Sikeres leolvasás</p>
-                  <p className="text-sm text-gray-500">Szeged, Árpád tér 5. - Minden mérőóra</p>
-                </div>
-              </li>
-            </ul>
-            <div className="mt-2 text-center">
-              <Button variant="link" className="text-primary">
-                Összes megtekintése
-              </Button>
-            </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-500 mb-4">Nincsenek megjeleníthető feladatok</p>
+                <p className="text-sm text-gray-400">Adjon hozzá ingatlanokat a feladatok megjelenítéséhez</p>
+              </div>
+            )}
           </CardContent>
         </Card>
         
@@ -269,29 +289,23 @@ export default function DashboardPage() {
             <CardTitle>Nemrég hozzáadott ingatlanok</CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            <ul className="divide-y divide-gray-200">
-              <li className="py-3">
-                <div className="flex justify-between items-center">
-                  <p className="font-medium">Budapest, Kossuth u. 1.</p>
-                  <span className="text-xs text-gray-500">3 napja</span>
-                </div>
-                <p className="text-sm text-gray-500">3 mérőóra, 1 bérlő</p>
-              </li>
-              <li className="py-3">
-                <div className="flex justify-between items-center">
-                  <p className="font-medium">Debrecen, Petőfi u. 22.</p>
-                  <span className="text-xs text-gray-500">1 hete</span>
-                </div>
-                <p className="text-sm text-gray-500">2 mérőóra, nincs bérlő</p>
-              </li>
-              <li className="py-3">
-                <div className="flex justify-between items-center">
-                  <p className="font-medium">Szeged, Árpád tér 5.</p>
-                  <span className="text-xs text-gray-500">2 hete</span>
-                </div>
-                <p className="text-sm text-gray-500">4 mérőóra, 2 bérlő</p>
-              </li>
-            </ul>
+            {properties && properties.length > 0 ? (
+              <ul className="divide-y divide-gray-200">
+                {properties.slice(0, 3).map(property => (
+                  <li key={property.id} className="py-3">
+                    <div className="flex justify-between items-center">
+                      <p className="font-medium">{property.address}</p>
+                      <span className="text-xs text-gray-500">
+                        {property.createdAt ? new Date(property.createdAt).toLocaleDateString() : 'Nemrég'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">Azonosító: #{property.id}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-center text-gray-500 py-4">Nincsenek hozzáadott ingatlanok</p>
+            )}
             <div className="mt-2 text-center">
               <Button variant="link" className="text-primary" asChild>
                 <Link href="/properties">
