@@ -235,9 +235,11 @@ export class MemStorage implements IStorage {
     });
     
     // Create an admin user by default
+    // Using a password hash in the format "hash.salt" compatible with our auth system
+    // The password is "admin123456" 
     this.createUser({
       username: "admin",
-      password: "5ef9ed4a5a1b44bde9fb98c1c7d5f27c4f89c6bec337883b5a7b9673f42e9b542e82f9a949c248ef0a1c79fd0f3cf0fac5f45eaf8dad1258e3401de33e6acf0c.12a5f43a92fa1f5c", // admin123456 (hashed)
+      password: "c56d616327fb9292be5970c3a8891cb9ffa9271cbcedc1cc6fd52c5a915be46a9be3eead802e92e1b4dafa42cd161e3a79855d4cd3409ba7ae64597eb8ec0e10.8c9d0505c7118907",
       email: "admin@tavrezsi.hu",
       name: "Admin User",
       role: "admin"
@@ -261,7 +263,8 @@ export class MemStorage implements IStorage {
     const newUser: User = {
       ...user,
       id: this.users.length + 1,
-      createdAt: new Date()
+      createdAt: new Date(),
+      role: user.role || "tenant" // Ensure role is not undefined
     };
     this.users.push(newUser);
     return newUser;
@@ -312,7 +315,9 @@ export class MemStorage implements IStorage {
     const newMeter: Meter = {
       ...meter,
       id: this.meters.length + 1,
-      createdAt: new Date()
+      createdAt: new Date(),
+      lastCertified: meter.lastCertified || null,
+      nextCertification: meter.nextCertification || null
     };
     this.meters.push(newMeter);
     return newMeter;
@@ -342,7 +347,8 @@ export class MemStorage implements IStorage {
       ...reading,
       id: this.readings.length + 1,
       timestamp: new Date(),
-      createdAt: new Date()
+      submittedById: reading.submittedById || null,
+      isIoT: reading.isIoT ?? true
     };
     this.readings.push(newReading);
     return newReading;
@@ -413,7 +419,9 @@ export class MemStorage implements IStorage {
     const newPropertyTenant: PropertyTenant = {
       ...propertyTenant,
       id: this.propertyTenants.length + 1,
-      createdAt: new Date()
+      startDate: propertyTenant.startDate || new Date(),
+      endDate: propertyTenant.endDate || null,
+      isActive: propertyTenant.isActive ?? true
     };
     this.propertyTenants.push(newPropertyTenant);
     return newPropertyTenant;
