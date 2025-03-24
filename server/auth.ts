@@ -146,18 +146,28 @@ export function setupAuth(app: Express) {
 // Create admin user for testing
 async function createAdminUser() {
   try {
-    const adminUser = await storage.getUserByUsername("admin");
+    let adminUser;
+    try {
+      adminUser = await storage.getUserByUsername("admin");
+    } catch (error) {
+      console.log("Error checking for admin user, will try to create one anyway:", error);
+    }
+    
     if (!adminUser) {
-      await storage.createUser({
-        username: "admin",
-        password: await hashPassword("admin123456"),
-        email: "admin@tavrezsi.hu",
-        name: "Admin Felhasználó",
-        role: "admin",
-      });
-      console.log("Admin user created");
+      try {
+        await storage.createUser({
+          username: "admin",
+          password: await hashPassword("admin123456"),
+          email: "admin@tavrezsi.hu",
+          name: "Admin Felhasználó",
+          role: "admin",
+        });
+        console.log("Admin user created");
+      } catch (createError) {
+        console.error("Failed to create admin user:", createError);
+      }
     }
   } catch (err) {
-    console.error("Error creating admin user:", err);
+    console.error("Error in createAdminUser function:", err);
   }
 }

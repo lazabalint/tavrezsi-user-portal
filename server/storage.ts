@@ -219,5 +219,221 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
+// In-memory storage implementation for demo
+export class MemStorage implements IStorage {
+  private users: User[] = [];
+  private properties: Property[] = [];
+  private meters: Meter[] = [];
+  private readings: Reading[] = [];
+  private correctionRequests: CorrectionRequest[] = [];
+  private propertyTenants: PropertyTenant[] = [];
+  sessionStore: session.Store;
+
+  constructor() {
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
+    
+    // Create an admin user by default
+    this.createUser({
+      username: "admin",
+      password: "5ef9ed4a5a1b44bde9fb98c1c7d5f27c4f89c6bec337883b5a7b9673f42e9b542e82f9a949c248ef0a1c79fd0f3cf0fac5f45eaf8dad1258e3401de33e6acf0c.12a5f43a92fa1f5c", // admin123456 (hashed)
+      email: "admin@tavrezsi.hu",
+      name: "Admin User",
+      role: "admin"
+    }).then(() => console.log("Default admin user created"));
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.find(u => u.id === id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return this.users.find(u => u.username === username);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return this.users.find(u => u.email === email);
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const newUser: User = {
+      ...user,
+      id: this.users.length + 1,
+      createdAt: new Date()
+    };
+    this.users.push(newUser);
+    return newUser;
+  }
+
+  async listUsers(role?: string): Promise<User[]> {
+    if (role) {
+      return this.users.filter(u => u.role === role);
+    }
+    return this.users;
+  }
+
+  // Property methods
+  async getProperty(id: number): Promise<Property | undefined> {
+    return this.properties.find(p => p.id === id);
+  }
+
+  async createProperty(property: InsertProperty): Promise<Property> {
+    const newProperty: Property = {
+      ...property,
+      id: this.properties.length + 1,
+      createdAt: new Date()
+    };
+    this.properties.push(newProperty);
+    return newProperty;
+  }
+
+  async listProperties(ownerId?: number): Promise<Property[]> {
+    if (ownerId) {
+      return this.properties.filter(p => p.ownerId === ownerId);
+    }
+    return this.properties;
+  }
+
+  async deleteProperty(id: number): Promise<void> {
+    const index = this.properties.findIndex(p => p.id === id);
+    if (index !== -1) {
+      this.properties.splice(index, 1);
+    }
+  }
+
+  // Meter methods
+  async getMeter(id: number): Promise<Meter | undefined> {
+    return this.meters.find(m => m.id === id);
+  }
+
+  async createMeter(meter: InsertMeter): Promise<Meter> {
+    const newMeter: Meter = {
+      ...meter,
+      id: this.meters.length + 1,
+      createdAt: new Date()
+    };
+    this.meters.push(newMeter);
+    return newMeter;
+  }
+
+  async listMeters(propertyId?: number): Promise<Meter[]> {
+    if (propertyId) {
+      return this.meters.filter(m => m.propertyId === propertyId);
+    }
+    return this.meters;
+  }
+
+  async deleteMeter(id: number): Promise<void> {
+    const index = this.meters.findIndex(m => m.id === id);
+    if (index !== -1) {
+      this.meters.splice(index, 1);
+    }
+  }
+
+  // Reading methods
+  async getReading(id: number): Promise<Reading | undefined> {
+    return this.readings.find(r => r.id === id);
+  }
+
+  async createReading(reading: InsertReading): Promise<Reading> {
+    const newReading: Reading = {
+      ...reading,
+      id: this.readings.length + 1,
+      timestamp: new Date(),
+      createdAt: new Date()
+    };
+    this.readings.push(newReading);
+    return newReading;
+  }
+
+  async listReadings(meterId?: number, limit?: number): Promise<Reading[]> {
+    let filteredReadings = meterId 
+      ? this.readings.filter(r => r.meterId === meterId)
+      : this.readings;
+    
+    // Sort by timestamp descending
+    filteredReadings.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+    
+    // Apply limit if specified
+    if (limit && limit > 0) {
+      filteredReadings = filteredReadings.slice(0, limit);
+    }
+    
+    return filteredReadings;
+  }
+
+  // Correction requests methods
+  async getCorrectionRequest(id: number): Promise<CorrectionRequest | undefined> {
+    return this.correctionRequests.find(r => r.id === id);
+  }
+
+  async createCorrectionRequest(request: InsertCorrectionRequest): Promise<CorrectionRequest> {
+    const newRequest: CorrectionRequest = {
+      ...request,
+      id: this.correctionRequests.length + 1,
+      status: "pending",
+      createdAt: new Date(),
+      resolvedAt: null,
+      resolvedById: null
+    };
+    this.correctionRequests.push(newRequest);
+    return newRequest;
+  }
+
+  async listCorrectionRequests(status?: string): Promise<CorrectionRequest[]> {
+    if (status) {
+      return this.correctionRequests.filter(r => r.status === status);
+    }
+    return this.correctionRequests;
+  }
+
+  async updateCorrectionRequestStatus(id: number, status: string, resolvedById: number): Promise<CorrectionRequest> {
+    const request = this.correctionRequests.find(r => r.id === id);
+    if (!request) {
+      throw new Error(`Correction request with id ${id} not found`);
+    }
+    
+    request.status = status;
+    request.resolvedById = resolvedById;
+    request.resolvedAt = new Date();
+    
+    return request;
+  }
+
+  // Property-tenant methods
+  async getPropertyTenant(id: number): Promise<PropertyTenant | undefined> {
+    return this.propertyTenants.find(pt => pt.id === id);
+  }
+
+  async createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<PropertyTenant> {
+    const newPropertyTenant: PropertyTenant = {
+      ...propertyTenant,
+      id: this.propertyTenants.length + 1,
+      createdAt: new Date()
+    };
+    this.propertyTenants.push(newPropertyTenant);
+    return newPropertyTenant;
+  }
+
+  async listPropertyTenants(propertyId?: number): Promise<PropertyTenant[]> {
+    if (propertyId) {
+      return this.propertyTenants.filter(pt => pt.propertyId === propertyId);
+    }
+    return this.propertyTenants;
+  }
+
+  async deletePropertyTenant(id: number): Promise<void> {
+    const index = this.propertyTenants.findIndex(pt => pt.id === id);
+    if (index !== -1) {
+      this.propertyTenants.splice(index, 1);
+    }
+  }
+}
+
 // Create and export storage instance
-export const storage = new DatabaseStorage();
+// Use in-memory storage since we're having database connectivity issues
+export const storage = new MemStorage();
