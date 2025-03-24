@@ -64,11 +64,8 @@ export default function TenantsPage() {
   const { data: propertyTenants, isLoading: tenantsLoading } = useQuery<any[]>({
     queryKey: ['/api/property-tenants', selectedPropertyId],
     queryFn: async () => {
-      const res = await fetch(`/api/property-tenants?propertyId=${selectedPropertyId}`);
-      if (!res.ok) {
-        throw new Error('Failed to fetch tenants');
-      }
-      return res.json();
+      const res = await apiRequest('GET', `/api/property-tenants?propertyId=${selectedPropertyId}`);
+      return await res.json();
     },
     enabled: !!selectedPropertyId && canManageTenants,
   });
@@ -76,21 +73,8 @@ export default function TenantsPage() {
   // Add tenant mutation
   const addTenantMutation = useMutation({
     mutationFn: async (data: z.infer<typeof addTenantSchema>) => {
-      const res = await fetch('/api/property-tenants', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-      
-      const responseData = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(responseData.message || 'Failed to add tenant');
-      }
-      
-      return responseData;
+      const res = await apiRequest('POST', '/api/property-tenants', data);
+      return await res.json();
     },
     onSuccess: (data) => {
       toast({
@@ -113,14 +97,7 @@ export default function TenantsPage() {
   // Remove tenant mutation
   const removeTenantMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`/api/property-tenants/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.message || 'Failed to remove tenant');
-      }
+      await apiRequest('DELETE', `/api/property-tenants/${id}`);
     },
     onSuccess: () => {
       toast({
