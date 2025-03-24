@@ -6,10 +6,11 @@ import { MeterCard } from "@/components/ui/meter-card";
 import { CorrectionModal } from "@/components/modals/correction-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowDown, ArrowUp, Check, AlertTriangle, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, ArrowDown, ArrowUp, Check, AlertTriangle, AlertCircle, Home, Settings, Building2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function DashboardPage() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
@@ -48,40 +49,70 @@ export default function DashboardPage() {
       title="Irányítópult"
       description="Üdvözöljük a TávRezsi rendszerben. Itt láthatja az óraállásokat és kezelhet minden kapcsolódó adatot."
     >
-      {/* Property Selector Section */}
-      <Card className="mb-6 shadow-sm">
-        <CardHeader className="pb-3 border-b">
-          <CardTitle>Ingatlanok</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="w-full md:w-1/2 lg:w-1/3">
-              {propertiesLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select value={selectedPropertyId} onValueChange={handlePropertyChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Válasszon ingatlant" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {properties?.map((property) => (
-                      <SelectItem key={property.id} value={property.id.toString()}>
-                        {property.name}, {property.address}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+      {/* Property Cards Section */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium">Ingatlanok</h2>
+          <Button asChild>
+            <Link href="/properties">
+              <Settings className="mr-2 h-4 w-4" />
+              Ingatlanok kezelése
+            </Link>
+          </Button>
+        </div>
+        
+        {propertiesLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden cursor-pointer shadow-sm hover:shadow transition-shadow">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-6 w-4/5 mb-2" />
+                  <Skeleton className="h-4 w-3/5" />
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <Skeleton className="h-4 w-full mb-2" />
+                  <Skeleton className="h-4 w-4/5" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : properties && properties.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {properties.map((property) => (
+              <Card 
+                key={property.id} 
+                className={`overflow-hidden cursor-pointer shadow-sm hover:shadow transition-shadow ${selectedPropertyId === property.id.toString() ? 'ring-2 ring-primary ring-offset-2' : ''}`}
+                onClick={() => handlePropertyChange(property.id.toString())}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">{property.name}</CardTitle>
+                  <CardDescription>{property.address}</CardDescription>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="flex items-center text-sm">
+                    <Building2 className="h-4 w-4 mr-2 text-gray-500" />
+                    <span>Azonosító: #{property.id}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white p-8 rounded-lg text-center shadow-sm">
+            <div className="mb-4 text-gray-400">
+              <Building2 className="w-16 h-16 mx-auto" />
             </div>
+            <h3 className="text-xl font-medium mb-2">Nincsenek ingatlanok</h3>
+            <p className="text-gray-500 mb-4">Még nem rendelkezik ingatlanokkal.</p>
             <Button asChild>
-              <Link href="/properties">
-                <Plus className="mr-1 h-4 w-4" />
-                Ingatlanok kezelése
+              <Link href="/add-property">
+                <Plus className="mr-2 h-4 w-4" />
+                Új ingatlan hozzáadása
               </Link>
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
 
       {/* Latest Readings Section */}
       <h2 className="text-lg font-medium mb-4">Legutóbbi leolvasások</h2>
@@ -89,12 +120,10 @@ export default function DashboardPage() {
       {!selectedPropertyId ? (
         <div className="bg-white p-8 rounded-lg text-center shadow-sm">
           <div className="mb-4 text-gray-400">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path>
-            </svg>
+            <Building2 className="w-16 h-16 mx-auto" />
           </div>
           <h3 className="text-xl font-medium mb-2">Válasszon ingatlant</h3>
-          <p className="text-gray-500">Az óraállások megtekintéséhez először válassza ki az egyik ingatlanát a legördülő menüből.</p>
+          <p className="text-gray-500">Az óraállások megtekintéséhez először válasszon ki egy ingatlant a fenti csempék közül.</p>
         </div>
       ) : metersLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
@@ -137,15 +166,13 @@ export default function DashboardPage() {
       ) : (
         <div className="bg-white p-8 rounded-lg text-center shadow-sm">
           <div className="mb-4 text-gray-400">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-            </svg>
+            <AlertCircle className="w-16 h-16 mx-auto" />
           </div>
           <h3 className="text-xl font-medium mb-2">Nincsenek mérőórák</h3>
           <p className="text-gray-500 mb-4">A kiválasztott ingatlanhoz még nincsenek mérőórák hozzárendelve.</p>
           <Button asChild>
             <Link href="/add-meter">
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="mr-2 h-4 w-4" />
               Új mérőóra hozzáadása
             </Link>
           </Button>
