@@ -25,7 +25,7 @@ export interface IStorage {
   // Property methods
   getProperty(id: number): Promise<Property | undefined>;
   createProperty(property: InsertProperty): Promise<Property>;
-  listProperties(ownerId?: number): Promise<Property[]>;
+  listProperties(options?: { userId?: number; role?: string }): Promise<Property[]>;
   deleteProperty(id: number): Promise<void>;
   
   // Meter methods
@@ -360,11 +360,28 @@ export class MemStorage implements IStorage {
     return newProperty;
   }
 
-  async listProperties(ownerId?: number): Promise<Property[]> {
-    if (ownerId) {
-      return this.properties.filter(p => p.ownerId === ownerId);
+  async listProperties(options?: { userId?: number; role?: string }): Promise<Property[]> {
+    // If no options provided or admin role, return all properties
+    if (!options || options.role === "admin") {
+      return this.properties;
     }
-    return this.properties;
+    
+    // For owner, return only their properties
+    if (options.role === "owner" && options.userId) {
+      return this.properties.filter(p => p.ownerId === options.userId);
+    }
+    
+    // For tenant, return properties they have access to via property_tenants
+    if (options.role === "tenant" && options.userId) {
+      const tenantPropertyIds = this.propertyTenants
+        .filter(pt => pt.tenantId === options.userId && pt.isActive)
+        .map(pt => pt.propertyId);
+      
+      return this.properties.filter(p => tenantPropertyIds.includes(p.id));
+    }
+    
+    // Default case - no properties should be accessible
+    return [];
   }
 
   async deleteProperty(id: number): Promise<void> {

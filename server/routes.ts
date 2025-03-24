@@ -195,7 +195,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           let properties: number[] = [];
           
           if (req.user?.role === "owner") {
-            const ownedProperties = await storage.listProperties(req.user.id);
+            const ownedProperties = await storage.listProperties({
+              userId: req.user.id,
+              role: req.user.role
+            });
             properties = ownedProperties.map(p => p.id);
           } else if (req.user) {
             // Tenant
