@@ -97,21 +97,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let properties;
       
-      console.log("Fetching properties, user role:", req.user.role, "user id:", req.user.id);
+      console.log("Fetching properties, user role:", req.user?.role, "user id:", req.user?.id);
       
       // Filter by owner if user is not admin
-      if (req.user.role === "admin") {
+      if (req.user?.role === "admin") {
         console.log("Admin user, fetching all properties");
         properties = await storage.listProperties();
-      } else if (req.user.role === "owner") {
+      } else if (req.user?.role === "owner") {
         console.log("Owner user, fetching properties for owner ID:", req.user.id);
+        // Owner can only see their own properties
         properties = await storage.listProperties(req.user.id);
       } else {
         console.log("Tenant user, fetching associated properties");
-        // For tenants, get properties where they are associated
+        // For tenants, get properties where they are associated via property_tenants
         const propertyTenants = await storage.listPropertyTenants();
         const tenantProperties = propertyTenants
-          .filter(pt => pt.tenantId === req.user.id && pt.isActive)
+          .filter(pt => pt.tenantId === req.user?.id && pt.isActive)
           .map(pt => pt.propertyId);
           
         console.log("Tenant property IDs:", tenantProperties);
@@ -185,7 +186,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/meters", authMiddleware, async (req, res) => {
     try {
       const { propertyId } = req.query;
-      let meters;
+      let meters: any[] = [];
       
       if (propertyId) {
         // Check if user has access to this property
@@ -196,25 +197,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // Check if user has permission to access this property
-        if (req.user.role === "admin" || 
-            (req.user.role === "owner" && property.ownerId === req.user.id) ||
-            (req.user.role === "tenant" && await isTenantOfProperty(req.user.id, property.id))) {
+        if (req.user?.role === "admin" || 
+            (req.user?.role === "owner" && property.ownerId === req.user.id) ||
+            (req.user?.role === "tenant" && await isTenantOfProperty(req.user.id, property.id))) {
           meters = await storage.listMeters(parseInt(propertyId as string));
         } else {
           return res.status(403).json({ message: "You don't have permission to access this property's meters" });
         }
       } else {
         // Get all meters the user has access to
-        if (req.user.role === "admin") {
+        if (req.user?.role === "admin") {
           meters = await storage.listMeters();
         } else {
           // Get properties first
           let properties: number[] = [];
           
-          if (req.user.role === "owner") {
+          if (req.user?.role === "owner") {
             const ownedProperties = await storage.listProperties(req.user.id);
             properties = ownedProperties.map(p => p.id);
-          } else {
+          } else if (req.user) {
             // Tenant
             const tenancies = await storage.listPropertyTenants();
             properties = tenancies
@@ -223,7 +224,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           
           // Get meters for these properties
-          meters = [];
           for (const pId of properties) {
             const propertyMeters = await storage.listMeters(pId);
             meters = [...meters, ...propertyMeters];
@@ -233,6 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(meters);
     } catch (err) {
+      console.error("Error fetching meters:", err);
       res.status(500).json({ message: "Failed to fetch meters" });
     }
   });
