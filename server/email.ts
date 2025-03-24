@@ -14,8 +14,16 @@ export async function generatePasswordResetToken(userId: number): Promise<string
   // Generálunk egy 32 karakter hosszú véletlenszerű tokent
   const token = crypto.randomBytes(32).toString('hex');
   
-  // TODO: Később implementálhatunk egy token tábla tárolást a token érvényességi 
-  // idejének és felhasználójának követése céljából
+  // Token lejárati idő beállítása (24 óra a jelenlegi időponttól)
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 24);
+  
+  // Token tárolása az adatbázisban
+  await storage.createPasswordResetToken({
+    userId,
+    token,
+    expiresAt
+  });
   
   return token;
 }

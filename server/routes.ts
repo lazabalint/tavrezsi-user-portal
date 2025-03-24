@@ -1,9 +1,10 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
+import { setupAuth, hashPassword, comparePasswords } from "./auth";
 import { z } from "zod";
 import { insertPropertySchema, insertMeterSchema, insertCorrectionRequestSchema, insertPropertyTenantSchema, insertReadingSchema, insertUserSchema } from "@shared/schema";
+import { sendPasswordResetEmail, sendWelcomeEmail } from "./email";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication routes
@@ -67,9 +68,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
       
-      // Import the hashPassword function from auth
-      const { hashPassword } = await import('./auth');
-      
       // Hash the password before storing
       const hashedUserData = {
         ...userData,
@@ -77,6 +75,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const user = await storage.createUser(hashedUserData);
+      
+      // Küldünk jelszó-visszaállító emailt az új felhasználónak
+      try {
+        await sendPasswordResetEmail(user);
+        console.log(`Jelszó-visszaállító email elküldve: ${user.email}`);
+      } catch (emailError) {
+        console.error("Hiba történt a jelszó-visszaállító email küldése közben:", emailError);
+        // Nem szakítjuk meg a folyamatot, ha az email küldés sikertelen
+      }
       
       // Don't send password
       const { password, ...userWithoutPassword } = user;
@@ -602,6 +609,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const propertyTenants = await storage.listPropertyTenants(propertyId);
     return propertyTenants.some(pt => pt.tenantId === userId && pt.isActive);
   }
+
+  // =============== PASSWORD RESET ROUTES ===============
+
+  // Request jelszó-visszaállítás
+  app.post("/api/request-password-reset", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Az email cím megadása kötelező" });
+      }
+
+      // Ellenőrizzük, hogy létezik-e a felhasználó ezzel az email címmel
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Biztonsági okokból ne adjunk információt arról, hogy létezik-e a felhasználó
+        return res.status(200).json({ message: "Ha az email létezik a rendszerben, elküldtük a jelszó-visszaállító levelet" });
+      }
+
+      // Küldünk egy jelszó-visszaállító emailt
+      await sendPasswordResetEmail(user);
+      
+      return res.status(200).json({ message: "Ha az email létezik a rendszerben, elküldtük a jelszó-visszaállító levelet" });
+    } catch (error) {
+      console.error("Hiba a jelszó-visszaállítási kérelem során:", error);
+      return res.status(500).json({ message: "Hiba történt a jelszó-visszaállítási kérelem során" });
+    }
+  });
+
+  // Jelszó visszaállítása a token alapján
+  app.post("/api/reset-password", async (req, res) => {
+    try {
+      const { token, userId, newPassword } = req.body;
+
+      if (!token || !userId || !newPassword) {
+        return res.status(400).json({ message: "Hiányzó adatok" });
+      }
+
+      // Token ellenőrzése
+      const resetToken = await storage.getPasswordResetTokenByToken(token);
+      if (!resetToken) {
+        return res.status(400).json({ message: "Érvénytelen vagy lejárt token" });
+      }
+
+      // Ellenőrizzük, hogy a token a megfelelő felhasználóhoz tartozik-e
+      if (resetToken.userId !== parseInt(userId)) {
+        return res.status(400).json({ message: "Érvénytelen token" });
+      }
+
+      // Ellenőrizzük, hogy a token még nem járt-e le
+      const now = new Date();
+      if (resetToken.expiresAt < now) {
+        return res.status(400).json({ message: "A token lejárt" });
+      }
+
+      // Ellenőrizzük, hogy létezik-e a felhasználó
+      const user = await storage.getUser(parseInt(userId));
+      if (!user) {
+        return res.status(400).json({ message: "Felhasználó nem található" });
+      }
+
+      // Jelszó hashelése
+      const hashedPassword = await hashPassword(newPassword);
+
+      // Felhasználó jelszavának frissítése
+      // Mivel nincs updateUser metódusunk, egy ideiglenes megoldás:
+      await db.update(users)
+        .set({ password: hashedPassword })
+        .where(eq(users.id, parseInt(userId)));
+
+      // Token használtként megjelölése
+      await storage.markPasswordResetTokenAsUsed(resetToken.id);
+
+      // Üdvözlő email küldése
+      await sendWelcomeEmail(user);
+
+      return res.status(200).json({ message: "A jelszó sikeresen frissítve" });
+    } catch (error) {
+      console.error("Hiba a jelszó visszaállítása során:", error);
+      return res.status(500).json({ message: "Hiba történt a jelszó visszaállítása során" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
