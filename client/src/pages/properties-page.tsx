@@ -19,9 +19,10 @@ export default function PropertiesPage() {
   const [deletePropertyId, setDeletePropertyId] = useState<number | null>(null);
 
   // Fetch properties, with refetch on user change
+  // All authenticated users can fetch properties, backend will filter based on role
   const { data: properties, isLoading } = useQuery<Property[]>({
-    queryKey: ['/api/properties'],
-    enabled: user?.role === 'admin',
+    queryKey: ['/api/properties', user?.id, user?.role],
+    enabled: !!user, // Enabled for any authenticated user
   });
 
   // Fetch users (for owners)

@@ -28,15 +28,16 @@ export default function MetersPage() {
   const [selectedMeter, setSelectedMeter] = useState<Meter | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Fetch properties
+  // Fetch properties with correct user permissions
   const { data: properties, isLoading: propertiesLoading } = useQuery<Property[]>({
-    queryKey: ['/api/properties'],
+    queryKey: ['/api/properties', user?.id, user?.role],
+    enabled: !!user,
   });
 
-  // Fetch meters for selected property
+  // Fetch meters for selected property - backend will filter based on user permissions
   const { data: meters, isLoading: metersLoading } = useQuery<Meter[]>({
-    queryKey: ['/api/meters'],
-    enabled: user?.role === 'admin',
+    queryKey: ['/api/meters', selectedPropertyId, user?.id, user?.role],
+    enabled: !!user, // Enable for all authenticated users
   });
 
   // Delete meter mutation
@@ -49,7 +50,12 @@ export default function MetersPage() {
         title: "Sikeres törlés",
         description: "A mérőóra sikeresen törölve lett",
       });
+      // Invalidate all meter queries with any parameters
       queryClient.invalidateQueries({ queryKey: ['/api/meters'] });
+      // Specifically invalidate the current user's meter queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/meters', selectedPropertyId, user?.id, user?.role]
+      });
       setDeleteMeterId(null);
     },
     onError: (error: Error) => {
