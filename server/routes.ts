@@ -124,17 +124,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a new property
-  app.post("/api/properties", ownerMiddleware, async (req, res) => {
+  // Create a new property - Only admin users
+  app.post("/api/properties", adminMiddleware, async (req, res) => {
     try {
       console.log("Creating new property, request body:", req.body);
       const propertyData = insertPropertySchema.parse(req.body);
       console.log("Property data after validation:", propertyData);
-      
-      // If not admin, can only create properties for themselves
-      if (req.user && req.user.role !== "admin" && propertyData.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "You can only create properties for yourself" });
-      }
       
       console.log("About to create property in database");
       const property = await storage.createProperty(propertyData);
