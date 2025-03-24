@@ -14,7 +14,7 @@ async function main() {
         "user_id" INTEGER NOT NULL,
         "created_at" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         "expires_at" TIMESTAMP NOT NULL,
-        "used" BOOLEAN DEFAULT FALSE,
+        "is_used" BOOLEAN DEFAULT FALSE,
         FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE
       );
     `);
