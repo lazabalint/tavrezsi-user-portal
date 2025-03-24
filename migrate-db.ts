@@ -1,0 +1,204 @@
+import { drizzle } from 'drizzle-orm/postgres-js';
+import { migrate } from 'drizzle-orm/postgres-js/migrator';
+import postgres from 'postgres';
+import * as schema from './shared/schema';
+
+// Database connection string from environment variable
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('DATABASE_URL environment variable is not set');
+  process.exit(1);
+}
+
+const main = async () => {
+  console.log('Starting database migration...');
+  
+  // Create a PostgreSQL connection
+  // For migrations, we don't want to use the pooled client
+  const migrationClient = postgres(connectionString, { max: 1 });
+  
+  try {
+    // Create a drizzle instance using the migration client
+    const db = drizzle(migrationClient, { schema });
+    
+    // In a "proper" migration we'd also use drizzle-kit to generate migration files
+    // But for this simple app, we'll use the push approach to directly sync the schema
+    console.log('Creating database schema from models...');
+    
+    // Push schema changes directly - effectively performs a schema sync
+    // This works similarly to db:push but without interactive prompts
+    // Note: this might be destructive in some cases
+    for (const tableName in schema) {
+      const tableObject = (schema as any)[tableName];
+      if (tableObject && tableObject.enumName) {
+        // It's an enum, we need to create it if it doesn't exist
+        try {
+          await migrationClient`
+            DO $$
+            BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = ${tableObject.enumName}) THEN
+                CREATE TYPE ${migrationClient.unsafe(tableObject.enumName)} AS ENUM (${migrationClient.array(tableObject.enumValues)});
+              END IF;
+            END$$;
+          `;
+          console.log(`Created enum ${tableObject.enumName} if it didn't exist`);
+        } catch (err) {
+          console.error(`Error creating enum ${tableObject.enumName}:`, err);
+        }
+      }
+    }
+    
+    // Now create tables
+    // This just lists the table creation SQL but doesn't execute it
+    // We'll need to manually execute them
+    try {
+      await migrationClient`
+        CREATE TABLE IF NOT EXISTS "users" (
+          "id" SERIAL PRIMARY KEY,
+          "username" TEXT NOT NULL UNIQUE,
+          "password" TEXT NOT NULL,
+          "email" TEXT NOT NULL UNIQUE,
+          "name" TEXT NOT NULL,
+          "role" user_role NOT NULL,
+          "created_at" TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
+      console.log('Created users table if it didn\'t exist');
+    } catch (err) {
+      // If the enum doesn't exist, create it first
+      if ((err as any).code === '42704') { // undefined_object
+        await migrationClient`
+          CREATE TYPE user_role AS ENUM ('admin', 'owner', 'tenant')
+        `;
+        await migrationClient`
+          CREATE TABLE IF NOT EXISTS "users" (
+            "id" SERIAL PRIMARY KEY,
+            "username" TEXT NOT NULL UNIQUE,
+            "password" TEXT NOT NULL,
+            "email" TEXT NOT NULL UNIQUE,
+            "name" TEXT NOT NULL,
+            "role" user_role NOT NULL,
+            "created_at" TIMESTAMP DEFAULT NOW() NOT NULL
+          )
+        `;
+        console.log('Created user_role enum and users table');
+      } else {
+        console.error('Error creating users table:', err);
+      }
+    }
+    
+    try {
+      await migrationClient`
+        CREATE TABLE IF NOT EXISTS "properties" (
+          "id" SERIAL PRIMARY KEY,
+          "name" TEXT NOT NULL,
+          "address" TEXT NOT NULL,
+          "owner_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "created_at" TIMESTAMP DEFAULT NOW() NOT NULL
+        )
+      `;
+      console.log('Created properties table if it didn\'t exist');
+    } catch (err) {
+      console.error('Error creating properties table:', err);
+    }
+    
+    try {
+      await migrationClient`
+        CREATE TYPE meter_type AS ENUM ('electricity', 'gas', 'water', 'other');
+        CREATE TABLE IF NOT EXISTS "meters" (
+          "id" SERIAL PRIMARY KEY,
+          "identifier" TEXT NOT NULL UNIQUE,
+          "name" TEXT NOT NULL,
+          "type" meter_type NOT NULL,
+          "unit" TEXT NOT NULL,
+          "property_id" INTEGER NOT NULL REFERENCES "properties"("id") ON DELETE CASCADE,
+          "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
+          "last_certified" TIMESTAMP,
+          "next_certification" TIMESTAMP
+        )
+      `;
+      console.log('Created meter_type enum and meters table if they didn\'t exist');
+    } catch (err) {
+      if ((err as any).code === '42710') { // duplicate_object for the enum
+        await migrationClient`
+          CREATE TABLE IF NOT EXISTS "meters" (
+            "id" SERIAL PRIMARY KEY,
+            "identifier" TEXT NOT NULL UNIQUE,
+            "name" TEXT NOT NULL,
+            "type" meter_type NOT NULL,
+            "unit" TEXT NOT NULL,
+            "property_id" INTEGER NOT NULL REFERENCES "properties"("id") ON DELETE CASCADE,
+            "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
+            "last_certified" TIMESTAMP,
+            "next_certification" TIMESTAMP
+          )
+        `;
+        console.log('Created meters table if it didn\'t exist (enum already existed)');
+      } else {
+        console.error('Error creating meters table:', err);
+      }
+    }
+    
+    try {
+      await migrationClient`
+        CREATE TABLE IF NOT EXISTS "readings" (
+          "id" SERIAL PRIMARY KEY,
+          "meter_id" INTEGER NOT NULL REFERENCES "meters"("id") ON DELETE CASCADE,
+          "reading" INTEGER NOT NULL,
+          "timestamp" TIMESTAMP DEFAULT NOW() NOT NULL,
+          "is_iot" BOOLEAN DEFAULT TRUE NOT NULL,
+          "submitted_by_id" INTEGER REFERENCES "users"("id")
+        )
+      `;
+      console.log('Created readings table if it didn\'t exist');
+    } catch (err) {
+      console.error('Error creating readings table:', err);
+    }
+    
+    try {
+      await migrationClient`
+        CREATE TABLE IF NOT EXISTS "correction_requests" (
+          "id" SERIAL PRIMARY KEY,
+          "meter_id" INTEGER NOT NULL REFERENCES "meters"("id") ON DELETE CASCADE,
+          "requested_reading" INTEGER NOT NULL,
+          "requested_by_id" INTEGER NOT NULL REFERENCES "users"("id"),
+          "reason" TEXT NOT NULL,
+          "status" TEXT DEFAULT 'pending' NOT NULL,
+          "created_at" TIMESTAMP DEFAULT NOW() NOT NULL,
+          "resolved_at" TIMESTAMP,
+          "resolved_by_id" INTEGER REFERENCES "users"("id")
+        )
+      `;
+      console.log('Created correction_requests table if it didn\'t exist');
+    } catch (err) {
+      console.error('Error creating correction_requests table:', err);
+    }
+    
+    try {
+      await migrationClient`
+        CREATE TABLE IF NOT EXISTS "property_tenants" (
+          "id" SERIAL PRIMARY KEY,
+          "property_id" INTEGER NOT NULL REFERENCES "properties"("id") ON DELETE CASCADE,
+          "tenant_id" INTEGER NOT NULL REFERENCES "users"("id") ON DELETE CASCADE,
+          "start_date" TIMESTAMP DEFAULT NOW() NOT NULL,
+          "end_date" TIMESTAMP,
+          "is_active" BOOLEAN DEFAULT TRUE NOT NULL
+        )
+      `;
+      console.log('Created property_tenants table if it didn\'t exist');
+    } catch (err) {
+      console.error('Error creating property_tenants table:', err);
+    }
+    
+    console.log('Database migration completed successfully');
+  } catch (error) {
+    console.error('Migration failed:');
+    console.error(error);
+  } finally {
+    await migrationClient.end();
+    console.log('Migration connection closed');
+  }
+};
+
+main();

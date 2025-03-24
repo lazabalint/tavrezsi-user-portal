@@ -97,18 +97,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       let properties;
       
+      console.log("Fetching properties, user role:", req.user.role, "user id:", req.user.id);
+      
       // Filter by owner if user is not admin
       if (req.user.role === "admin") {
+        console.log("Admin user, fetching all properties");
         properties = await storage.listProperties();
       } else if (req.user.role === "owner") {
+        console.log("Owner user, fetching properties for owner ID:", req.user.id);
         properties = await storage.listProperties(req.user.id);
       } else {
+        console.log("Tenant user, fetching associated properties");
         // For tenants, get properties where they are associated
         const propertyTenants = await storage.listPropertyTenants();
         const tenantProperties = propertyTenants
           .filter(pt => pt.tenantId === req.user.id && pt.isActive)
           .map(pt => pt.propertyId);
           
+        console.log("Tenant property IDs:", tenantProperties);
+        
         // Get all properties by IDs
         properties = [];
         for (const id of tenantProperties) {
@@ -117,8 +124,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      console.log("Properties fetched successfully:", properties);
       res.json(properties);
     } catch (err) {
+      console.error("Error fetching properties:", err);
       res.status(500).json({ message: "Failed to fetch properties" });
     }
   });
@@ -126,16 +135,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new property
   app.post("/api/properties", ownerMiddleware, async (req, res) => {
     try {
+      console.log("Creating new property, request body:", req.body);
       const propertyData = insertPropertySchema.parse(req.body);
+      console.log("Property data after validation:", propertyData);
       
       // If not admin, can only create properties for themselves
-      if (req.user.role !== "admin" && propertyData.ownerId !== req.user.id) {
+      if (req.user && req.user.role !== "admin" && propertyData.ownerId !== req.user.id) {
         return res.status(403).json({ message: "You can only create properties for yourself" });
       }
       
+      console.log("About to create property in database");
       const property = await storage.createProperty(propertyData);
+      console.log("Property created successfully:", property);
       res.status(201).json(property);
     } catch (err) {
+      console.error("Error creating property:", err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid property data", errors: err.errors });
       }

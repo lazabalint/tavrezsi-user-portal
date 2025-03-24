@@ -96,20 +96,44 @@ export class DatabaseStorage implements IStorage {
 
   // Property methods
   async getProperty(id: number): Promise<Property | undefined> {
-    const [property] = await db.select().from(properties).where(eq(properties.id, id));
-    return property;
+    try {
+      console.log("Getting property with ID:", id);
+      const [property] = await db.select().from(properties).where(eq(properties.id, id));
+      console.log("Retrieved property:", property);
+      return property;
+    } catch (err) {
+      console.error("Error getting property:", err);
+      throw err;
+    }
   }
 
   async createProperty(property: InsertProperty): Promise<Property> {
-    const [createdProperty] = await db.insert(properties).values(property).returning();
-    return createdProperty;
+    try {
+      console.log("Creating property with data:", property);
+      const [createdProperty] = await db.insert(properties).values(property).returning();
+      console.log("Created property:", createdProperty);
+      return createdProperty;
+    } catch (err) {
+      console.error("Error creating property:", err);
+      throw err;
+    }
   }
 
   async listProperties(ownerId?: number): Promise<Property[]> {
-    if (ownerId) {
-      return await db.select().from(properties).where(eq(properties.ownerId, ownerId));
+    try {
+      console.log("Listing properties, ownerId filter:", ownerId);
+      let result;
+      if (ownerId) {
+        result = await db.select().from(properties).where(eq(properties.ownerId, ownerId));
+      } else {
+        result = await db.select().from(properties);
+      }
+      console.log("Retrieved properties:", result);
+      return result;
+    } catch (err) {
+      console.error("Error listing properties:", err);
+      throw err;
     }
-    return await db.select().from(properties);
   }
 
   async deleteProperty(id: number): Promise<void> {
