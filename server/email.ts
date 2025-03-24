@@ -2,16 +2,25 @@ import { users, properties } from '../shared/schema';
 import * as crypto from 'crypto';
 import { storage } from './storage';
 
-// Function to safely get Mailjet client, handling both ESM and CJS environments
-function getMailjetClient() {
+// Import Mailjet properly for ESM
+import Mailjet from 'node-mailjet';
+
+// Define type for mailjet client
+type MailjetClient = ReturnType<typeof Mailjet> | null;
+
+// Function to safely get Mailjet client, handling ESM environment
+function getMailjetClient(): MailjetClient {
   try {
-    // For ESM environment with global.mailjet set in wrapper
-    if (typeof global !== 'undefined' && global.mailjet) {
-      return global.mailjet;
+    // For ESM environment with global variable
+    if (typeof globalThis !== 'undefined') {
+      // Using type assertion and hasOwnProperty to safely check for mailjet property
+      const globalThisAny = globalThis as any;
+      if (globalThisAny.hasOwnProperty('mailjet') && globalThisAny.mailjet !== undefined) {
+        return globalThisAny.mailjet as MailjetClient;
+      }
     }
     
-    // For standard ESM/CJS environment
-    const Mailjet = require('node-mailjet');
+    // Standard initialization
     return new Mailjet({
       apiKey: process.env.MAILJET_API_KEY || '',
       apiSecret: process.env.MAILJET_API_SECRET || ''
@@ -23,7 +32,12 @@ function getMailjetClient() {
 }
 
 // Get mailjet client or null if unavailable
-const mailjet = getMailjetClient();
+let mailjet: MailjetClient = null;
+try {
+  mailjet = getMailjetClient();
+} catch (error) {
+  console.warn('Mailjet initialization failed, email functionality will be disabled:', error);
+}
 
 // Token generálása jelszó-visszaállításhoz
 export async function generatePasswordResetToken(userId: number): Promise<string> {

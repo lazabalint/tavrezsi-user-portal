@@ -12,9 +12,8 @@ export const users = pgTable("users", {
   email: text("email").notNull(),
   password: text("password").notNull(),
   name: text("name").notNull(),
-  role: text('role', { enum: ['admin', 'owner', 'tenant'] }).notNull().default('tenant'),
+  role: userRoleEnum("role").notNull().default('tenant'),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  isActive: boolean("is_active").notNull().default(true),
 });
 
 // Properties table
@@ -91,8 +90,8 @@ export const insertUserSchema = createInsertSchema(users, {
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(2),
-  role: z.enum(['admin', 'owner', 'tenant']).optional(),
-  isActive: z.boolean().optional()
+  role: z.enum(['admin', 'owner', 'tenant']).optional()
+  // isActive field removed to match database schema
 });
 
 export const insertPropertySchema = createInsertSchema(properties).omit({
