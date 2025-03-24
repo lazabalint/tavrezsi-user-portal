@@ -144,19 +144,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a property
-  app.delete("/api/properties/:id", ownerMiddleware, async (req, res) => {
+  // Delete a property - Only admin users
+  app.delete("/api/properties/:id", adminMiddleware, async (req, res) => {
     try {
       const propertyId = parseInt(req.params.id);
       const property = await storage.getProperty(propertyId);
       
       if (!property) {
         return res.status(404).json({ message: "Property not found" });
-      }
-      
-      // Check ownership
-      if (req.user.role !== "admin" && property.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "You don't have permission to delete this property" });
       }
       
       await storage.deleteProperty(propertyId);
@@ -248,8 +243,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a meter
-  app.delete("/api/meters/:id", ownerMiddleware, async (req, res) => {
+  // Delete a meter - Only admin users
+  app.delete("/api/meters/:id", adminMiddleware, async (req, res) => {
     try {
       const meterId = parseInt(req.params.id);
       const meter = await storage.getMeter(meterId);
@@ -258,14 +253,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Meter not found" });
       }
       
-      // Check ownership through property
+      // Check if property exists
       const property = await storage.getProperty(meter.propertyId);
       if (!property) {
         return res.status(404).json({ message: "Property not found" });
-      }
-      
-      if (req.user.role !== "admin" && property.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "You don't have permission to delete this meter" });
       }
       
       await storage.deleteMeter(meterId);

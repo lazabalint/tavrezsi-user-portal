@@ -38,8 +38,8 @@ export default function AddMeterPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Check if user can create meters
-  const canCreateMeter = user?.role === 'admin' || user?.role === 'owner';
+  // Check if user can create meters (only admin)
+  const canCreateMeter = user?.role === 'admin';
 
   // Fetch properties
   const { data: properties } = useQuery<Property[]>({
@@ -110,7 +110,7 @@ export default function AddMeterPage() {
             <Shield className="w-16 h-16 mx-auto" />
           </div>
           <h3 className="text-xl font-medium mb-2">Hozzáférés megtagadva</h3>
-          <p className="text-gray-500">Ez az oldal csak tulajdonosok és adminisztrátorok számára érhető el.</p>
+          <p className="text-gray-500">Ez az oldal csak adminisztrátorok számára érhető el.</p>
         </div>
       </DashboardLayout>
     );
