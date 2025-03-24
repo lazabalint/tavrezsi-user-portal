@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
+import ResetPasswordPage from "@/pages/reset-password-page";
 import DashboardPage from "@/pages/dashboard-page";
 import PropertiesPage from "@/pages/properties-page";
 import MetersPage from "@/pages/meters-page";
@@ -23,6 +24,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
+      <Route path="/reset-password" component={ResetPasswordPage} />
       <ProtectedRoute path="/" component={DashboardPage} />
       <ProtectedRoute path="/properties" component={PropertiesPage} />
       <ProtectedRoute path="/meters" component={MetersPage} />

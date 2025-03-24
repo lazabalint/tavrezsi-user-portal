@@ -12,11 +12,36 @@ import { z } from "zod";
 import { Redirect } from "wouter";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
+
+// Jelszó-visszaállítási schema
+const passwordResetSchema = z.object({
+  email: z.string().email({ message: "Érvényes email címet adjon meg" })
+});
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("login");
+  const [resetPasswordLoading, setResetPasswordLoading] = useState(false);
+  
+  // Jelszó-visszaállító form
+  const resetPasswordForm = useForm<z.infer<typeof passwordResetSchema>>({
+    resolver: zodResolver(passwordResetSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
   // Login form
   const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -51,6 +76,35 @@ export default function AuthPage() {
 
   const onRegisterSubmit = (values: z.infer<typeof registerSchema>) => {
     registerMutation.mutate(values);
+  };
+  
+  // Jelszó-visszaállítás kezelő függvény
+  const onResetPasswordSubmit = async (values: z.infer<typeof passwordResetSchema>) => {
+    try {
+      setResetPasswordLoading(true);
+      
+      const response = await apiRequest(
+        "/api/request-password-reset",
+        "POST",
+        values
+      );
+      
+      toast({
+        title: "Jelszó-visszaállítási kérelem elküldve",
+        description: "Ha a megadott email regisztrálva van a rendszerben, hamarosan kap egy jelszó-visszaállító emailt.",
+        variant: "default",
+      });
+      
+      resetPasswordForm.reset();
+    } catch (error) {
+      toast({
+        title: "Hiba történt",
+        description: "Nem sikerült elküldeni a jelszó-visszaállítási kérelmet. Kérjük, próbálja újra.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetPasswordLoading(false);
+    }
   };
 
   // House with circle inside logo SVG
@@ -122,13 +176,52 @@ export default function AuthPage() {
                       >
                         {loginMutation.isPending ? "Bejelentkezés..." : "Bejelentkezés"}
                       </Button>
-                      <Button 
-                        type="button" 
-                        variant="link" 
-                        className="mt-2"
-                      >
-                        Elfelejtettem a jelszavam
-                      </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button 
+                            type="button" 
+                            variant="link" 
+                            className="mt-2"
+                          >
+                            Elfelejtettem a jelszavam
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>Jelszó visszaállítása</DialogTitle>
+                            <DialogDescription>
+                              Kérjük, adja meg azt az e-mail címet, amelyet a fiókjához használt, és küldünk Önnek egy jelszó-visszaállító linket.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <Form {...resetPasswordForm}>
+                            <form onSubmit={resetPasswordForm.handleSubmit(onResetPasswordSubmit)}>
+                              <div className="grid gap-4 py-4">
+                                <FormField
+                                  control={resetPasswordForm.control}
+                                  name="email"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Email cím</FormLabel>
+                                      <FormControl>
+                                        <Input type="email" placeholder="email@pelda.hu" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button type="button" variant="outline">Mégsem</Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={resetPasswordLoading}>
+                                  {resetPasswordLoading ? "Küldés..." : "Jelszó-visszaállító link küldése"}
+                                </Button>
+                              </DialogFooter>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
                     </CardFooter>
                   </form>
                 </Form>
