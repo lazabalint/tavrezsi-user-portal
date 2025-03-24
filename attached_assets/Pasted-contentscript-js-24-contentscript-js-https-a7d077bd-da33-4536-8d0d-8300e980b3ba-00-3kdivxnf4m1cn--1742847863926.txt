@@ -1,0 +1,93 @@
+contentscript.js:24 contentscript.js: https://a7d077bd-da33-4536-8d0d-8300e980b3ba-00-3kdivxnf4m1cn.kirk.replit.dev/auth 
+lockdown-install.js:1 Removing unpermitted intrinsics
+/api/user:1 
+            
+            
+           Failed to load resource: the server responded with a status of 401 (Unauthorized)
+queryClient.ts:22 API Request: POST /api/login Object
+hook.js:608 Warning: validateDOMNesting(...): <a> cannot appear as a descendant of <a>. Error Component Stack
+    at a (<anonymous>)
+    at a (<anonymous>)
+    at wouter.js?v=f33ddd1b:337:18
+    at li (<anonymous>)
+    at NavLink (sidebar.tsx:27:22)
+    at ul (<anonymous>)
+    at nav (<anonymous>)
+    at aside (<anonymous>)
+    at Sidebar (sidebar.tsx:14:27)
+    at div (<anonymous>)
+    at DashboardLayout (dashboard-layout.tsx:14:35)
+    at DashboardPage (dashboard-page.tsx:16:55)
+    at Route (wouter.js?v=f33ddd1b:323:16)
+    at ProtectedRoute (protected-route.tsx:12:3)
+    at Switch (wouter.js?v=f33ddd1b:379:17)
+    at Router (<anonymous>)
+    at AuthProvider (use-auth.tsx:41:32)
+    at QueryClientProvider (@tanstack_react-query.js?v=f33ddd1b:2805:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+hook.js:608 Warning: React has detected a change in the order of Hooks called by DashboardPage. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useState                   useState
+2. useState                   useState
+3. useState                   useState
+4. useContext                 useContext
+5. useContext                 useContext
+6. useContext                 useContext
+7. useEffect                  useEffect
+8. useState                   useState
+9. useCallback                useCallback
+10. useSyncExternalStore      useSyncExternalStore
+11. useEffect                 useEffect
+12. useContext                useContext
+13. useContext                useContext
+14. useContext                useContext
+15. useEffect                 useEffect
+16. useState                  useState
+17. useCallback               useCallback
+18. useSyncExternalStore      useSyncExternalStore
+19. useEffect                 useEffect
+20. undefined                 useContext
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ Error Component Stack
+    at DashboardPage (dashboard-page.tsx:16:55)
+    at Route (wouter.js?v=f33ddd1b:323:16)
+    at ProtectedRoute (protected-route.tsx:12:3)
+    at Switch (wouter.js?v=f33ddd1b:379:17)
+    at Router (<anonymous>)
+    at AuthProvider (use-auth.tsx:41:32)
+    at QueryClientProvider (@tanstack_react-query.js?v=f33ddd1b:2805:3)
+    at App (<anonymous>)
+overrideMethod @ hook.js:608
+queryClient.ts:22 API Request: POST /api/logout (no data)
+queryClient.ts:46 
+            
+            
+           GET https://a7d077bd-da33-4536-8d0d-8300e980b3ba-00-3kdivxnf4m1cn.kirk.replit.dev/api/user 401 (Unauthorized)
+(anonymous) @ queryClient.ts:46
+fetchFn @ @tanstack_react-query.js?v=f33ddd1b:840
+run @ @tanstack_react-query.js?v=f33ddd1b:494
+start @ @tanstack_react-query.js?v=f33ddd1b:536
+fetch @ @tanstack_react-query.js?v=f33ddd1b:926
+executeFetch_fn @ @tanstack_react-query.js?v=f33ddd1b:2211
+setOptions @ @tanstack_react-query.js?v=f33ddd1b:1955
+(anonymous) @ @tanstack_react-query.js?v=f33ddd1b:3032
+commitHookEffectListMount @ chunk-RPCDYKBN.js?v=f33ddd1b:16915
+commitPassiveMountOnFiber @ chunk-RPCDYKBN.js?v=f33ddd1b:18156
+commitPassiveMountEffects_complete @ chunk-RPCDYKBN.js?v=f33ddd1b:18129
+commitPassiveMountEffects_begin @ chunk-RPCDYKBN.js?v=f33ddd1b:18119
+commitPassiveMountEffects @ chunk-RPCDYKBN.js?v=f33ddd1b:18109
+flushPassiveEffectsImpl @ chunk-RPCDYKBN.js?v=f33ddd1b:19490
+flushPassiveEffects @ chunk-RPCDYKBN.js?v=f33ddd1b:19447
+performSyncWorkOnRoot @ chunk-RPCDYKBN.js?v=f33ddd1b:18868
+flushSyncCallbacks @ chunk-RPCDYKBN.js?v=f33ddd1b:9119
+commitRootImpl @ chunk-RPCDYKBN.js?v=f33ddd1b:19432
+commitRoot @ chunk-RPCDYKBN.js?v=f33ddd1b:19277
+finishConcurrentRender @ chunk-RPCDYKBN.js?v=f33ddd1b:18805
+performConcurrentWorkOnRoot @ chunk-RPCDYKBN.js?v=f33ddd1b:18718
+workLoop @ chunk-RPCDYKBN.js?v=f33ddd1b:197
+flushWork @ chunk-RPCDYKBN.js?v=f33ddd1b:176
+performWorkUntilDeadline @ chunk-RPCDYKBN.js?v=f33ddd1b:384
+queryClient.ts:22 API Request: POST /api/login {username: 'admin', password: 'admin123456'}

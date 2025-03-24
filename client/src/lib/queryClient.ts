@@ -19,7 +19,9 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  console.log(`API Request: ${method} ${url}`, data ? { ...data } : '(no data)');
+  // Log the request without sensitive information
+  const logSafeData = data ? safeLogData(data) : '(no data)';
+  console.log(`API Request: ${method} ${url}`, logSafeData);
   
   try {
     const res = await fetch(url, {
@@ -35,6 +37,22 @@ export async function apiRequest(
     console.error(`API Request failed: ${method} ${url}`, error);
     throw error;
   }
+}
+
+// Helper function to sanitize sensitive data for logging
+function safeLogData(data: any): any {
+  if (!data) return data;
+  
+  // Create a shallow copy of the data
+  const sanitized = { ...data };
+  
+  // Remove sensitive fields
+  if (sanitized.password !== undefined) sanitized.password = '********';
+  if (sanitized.newPassword !== undefined) sanitized.newPassword = '********';
+  if (sanitized.confirmPassword !== undefined) sanitized.confirmPassword = '********';
+  if (sanitized.token !== undefined) sanitized.token = '********';
+  
+  return sanitized;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";

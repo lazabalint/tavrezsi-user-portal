@@ -12,10 +12,43 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 
+// Helper component to avoid hooks violation in conditional rendering
+function AddPropertyButton() {
+  const { user } = useAuth();
+  if (user?.role === 'admin') {
+    return (
+      <Button asChild>
+        <Link href="/add-property">
+          <Plus className="mr-2 h-4 w-4" />
+          Új ingatlan hozzáadása
+        </Link>
+      </Button>
+    );
+  }
+  return null;
+}
+
+// Helper component for the meter section
+function AddMeterButton() {
+  const { user } = useAuth();
+  if (user?.role === 'admin') {
+    return (
+      <Button asChild>
+        <Link href="/add-meter">
+          <Plus className="mr-2 h-4 w-4" />
+          Új mérőóra hozzáadása
+        </Link>
+      </Button>
+    );
+  }
+  return null;
+}
+
 export default function DashboardPage() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("");
   const [selectedMeter, setSelectedMeter] = useState<Meter | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
 
   // Fetch properties
   const { data: properties, isLoading: propertiesLoading } = useQuery<Property[]>({
@@ -104,14 +137,7 @@ export default function DashboardPage() {
             </div>
             <h3 className="text-xl font-medium mb-2">Nincsenek ingatlanok</h3>
             <p className="text-gray-500 mb-4">Még nem rendelkezik ingatlanokkal.</p>
-            {useAuth().user?.role === 'admin' && (
-              <Button asChild>
-                <Link href="/add-property">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Új ingatlan hozzáadása
-                </Link>
-              </Button>
-            )}
+            <AddPropertyButton />
           </div>
         )}
       </div>
@@ -172,14 +198,7 @@ export default function DashboardPage() {
           </div>
           <h3 className="text-xl font-medium mb-2">Nincsenek mérőórák</h3>
           <p className="text-gray-500 mb-4">A kiválasztott ingatlanhoz még nincsenek mérőórák hozzárendelve.</p>
-          {useAuth().user?.role === 'admin' && (
-            <Button asChild>
-              <Link href="/add-meter">
-                <Plus className="mr-2 h-4 w-4" />
-                Új mérőóra hozzáadása
-              </Link>
-            </Button>
-          )}
+          <AddMeterButton />
         </div>
       )}
 
