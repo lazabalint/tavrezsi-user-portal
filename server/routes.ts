@@ -227,8 +227,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Create a new meter
-  app.post("/api/meters", ownerMiddleware, async (req, res) => {
+  // Create a new meter - Only admin users
+  app.post("/api/meters", adminMiddleware, async (req, res) => {
     try {
       const meterData = insertMeterSchema.parse(req.body);
       
@@ -236,11 +236,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const property = await storage.getProperty(meterData.propertyId);
       if (!property) {
         return res.status(404).json({ message: "Property not found" });
-      }
-      
-      // Check if user has permission
-      if (req.user.role !== "admin" && property.ownerId !== req.user.id) {
-        return res.status(403).json({ message: "You don't have permission to add meters to this property" });
       }
       
       const meter = await storage.createMeter(meterData);

@@ -66,7 +66,7 @@ export default function PropertiesPage() {
     <DashboardLayout title="Ingatlanok" description="Ingatlanok kezelése és áttekintése">
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-lg font-medium">Ingatlanok listája</h2>
-        {(user?.role === 'admin' || user?.role === 'owner') && (
+        {user?.role === 'admin' && (
           <Button asChild>
             <Link href="/add-property">
               <Plus className="mr-2 h-4 w-4" />
@@ -176,7 +176,7 @@ export default function PropertiesPage() {
           </div>
           <h3 className="text-xl font-medium mb-2">Nincsenek ingatlanok</h3>
           <p className="text-gray-500 mb-4">Még nem rendelkezik ingatlanokkal.</p>
-          {(user?.role === 'admin' || user?.role === 'owner') && (
+          {user?.role === 'admin' && (
             <Button asChild>
               <Link href="/add-property">
                 <Plus className="mr-2 h-4 w-4" />
