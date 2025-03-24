@@ -22,14 +22,14 @@ type AuthContextType = {
 };
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  username: z.string().min(1, "Felhasználónév megadása kötelező"),
+  password: z.string().min(1, "Jelszó megadása kötelező"),
 });
 
 const registerSchema = insertUserSchema.extend({
-  confirmPassword: z.string().min(1, "Confirm password is required"),
+  confirmPassword: z.string().min(1, "Jelszó megerősítése kötelező"),
 }).refine(data => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
+  message: "A jelszavak nem egyeznek",
   path: ["confirmPassword"]
 });
 
