@@ -139,7 +139,10 @@ export default function PropertiesPage() {
                   {user?.role === 'admin' && (
                     <div className="flex items-center text-sm">
                       <Users className="h-4 w-4 mr-2 text-gray-500" />
-                      <span>Tulajdonos: {getOwnerName(property.ownerId)}</span>
+                      <span className="font-medium">Tulajdonos:</span>
+                      <span className="ml-1 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        {getOwnerName(property.ownerId)} (ID: {property.ownerId})
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center text-sm">
