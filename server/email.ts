@@ -34,7 +34,7 @@ const getPasswordResetEmailTemplate = (user: User, token: string) => {
   
   return {
     From: {
-      Email: "tavrezsi@example.com",
+      Email: "no-reply@tavrezsi.hu",
       Name: "TávRezsi Rendszer"
     },
     To: [
@@ -74,7 +74,7 @@ const getPasswordResetEmailTemplate = (user: User, token: string) => {
 const getWelcomeEmailTemplate = (user: User) => {
   return {
     From: {
-      Email: "tavrezsi@example.com",
+      Email: "no-reply@tavrezsi.hu",
       Name: "TávRezsi Rendszer"
     },
     To: [
