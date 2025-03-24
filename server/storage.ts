@@ -443,7 +443,7 @@ export class MemStorage implements IStorage {
     const newPropertyTenant: PropertyTenant = {
       ...propertyTenant,
       id: this.propertyTenants.length + 1,
-      startDate: propertyTenant.startDate || new Date(),
+      startDate: new Date(),
       endDate: propertyTenant.endDate || null,
       isActive: propertyTenant.isActive ?? true
     };
