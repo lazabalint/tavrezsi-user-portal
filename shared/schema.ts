@@ -8,12 +8,13 @@ export const userRoleEnum = pgEnum('user_role', ['admin', 'owner', 'tenant']);
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
+  username: text("username").notNull(),
+  email: text("email").notNull(),
   password: text("password").notNull(),
-  email: text("email").notNull().unique(),
   name: text("name").notNull(),
-  role: userRoleEnum("role").notNull().default('tenant'),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  role: text('role', { enum: ['admin', 'owner', 'tenant'] }).notNull().default('tenant'),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  isActive: boolean("is_active").notNull().default(true),
 });
 
 // Properties table
@@ -68,8 +69,8 @@ export const correctionRequests = pgTable("correction_requests", {
 export const propertyTenants = pgTable("property_tenants", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").references(() => properties.id, { onDelete: 'cascade' }).notNull(),
-  tenantId: integer("tenant_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  startDate: timestamp("start_date").defaultNow().notNull(),
+  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  startDate: timestamp("start_date").notNull().defaultNow(),
   endDate: timestamp("end_date"),
   isActive: boolean("is_active").notNull().default(true),
 });
@@ -79,15 +80,19 @@ export const passwordResetTokens = pgTable("password_reset_tokens", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
   token: text("token").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   isUsed: boolean("is_used").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 // Zod schemas for insertion
-export const insertUserSchema = createInsertSchema(users).omit({
-  id: true,
-  createdAt: true,
+export const insertUserSchema = createInsertSchema(users, {
+  username: z.string().min(3),
+  email: z.string().email(),
+  password: z.string().min(6),
+  name: z.string().min(2),
+  role: z.enum(['admin', 'owner', 'tenant']).optional(),
+  isActive: z.boolean().optional()
 });
 
 export const insertPropertySchema = createInsertSchema(properties).omit({
@@ -113,9 +118,12 @@ export const insertCorrectionRequestSchema = createInsertSchema(correctionReques
   status: true,
 });
 
-export const insertPropertyTenantSchema = createInsertSchema(propertyTenants).omit({
-  id: true,
-  startDate: true,
+export const insertPropertyTenantSchema = createInsertSchema(propertyTenants, {
+  propertyId: z.number(),
+  userId: z.number(),
+  startDate: z.date().optional(),
+  endDate: z.date().nullable().optional(),
+  isActive: z.boolean().optional()
 });
 
 export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({

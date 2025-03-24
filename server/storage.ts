@@ -5,7 +5,8 @@ import {
   readings, type Reading, type InsertReading, 
   correctionRequests, type CorrectionRequest, type InsertCorrectionRequest,
   propertyTenants, type PropertyTenant, type InsertPropertyTenant,
-  passwordResetTokens, type PasswordResetToken, type InsertPasswordResetToken
+  passwordResetTokens, type PasswordResetToken, type InsertPasswordResetToken,
+  insertUserSchema, insertPropertyTenantSchema
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, InferSelectModel, SQL, is } from "drizzle-orm";
@@ -19,9 +20,10 @@ export interface IStorage {
   // User methods
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<typeof users.$inferSelect | undefined>;
   createUser(user: InsertUser): Promise<User>;
   listUsers(role?: string): Promise<User[]>;
+  deleteUser(id: number): Promise<void>;
   
   // Property methods
   getProperty(id: number): Promise<Property | undefined>;
@@ -47,15 +49,18 @@ export interface IStorage {
   updateCorrectionRequestStatus(id: number, status: string, resolvedById: number): Promise<CorrectionRequest>;
   
   // Property-tenant methods
-  getPropertyTenant(id: number): Promise<PropertyTenant | undefined>;
-  createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<PropertyTenant>;
-  listPropertyTenants(propertyId?: number): Promise<PropertyTenant[]>;
+  getPropertyTenant(id: number): Promise<typeof propertyTenants.$inferSelect | undefined>;
+  createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<typeof propertyTenants.$inferSelect>;
+  updatePropertyTenant(id: number, data: Partial<typeof propertyTenants.$inferSelect>): Promise<typeof propertyTenants.$inferSelect>;
+  listPropertyTenants(propertyId?: number): Promise<Array<typeof propertyTenants.$inferSelect>>;
   deletePropertyTenant(id: number): Promise<void>;
+  getPropertyTenantByUserAndProperty(userId: number, propertyId: number): Promise<typeof propertyTenants.$inferSelect | undefined>;
   
   // Password reset token methods
-  createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
-  getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
-  markPasswordResetTokenAsUsed(id: number): Promise<void>;
+  createPasswordResetToken(data: { userId: number; token: string; expiresAt: Date; isUsed: boolean }): Promise<typeof passwordResetTokens.$inferSelect>;
+  getPasswordResetToken(token: string): Promise<typeof passwordResetTokens.$inferSelect | undefined>;
+  markPasswordResetTokenUsed(token: string): Promise<void>;
+  deletePasswordResetToken(id: number): Promise<void>;
   
   // Session store
   sessionStore: session.Store;
@@ -83,7 +88,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<typeof users.$inferSelect | undefined> {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
@@ -98,6 +103,10 @@ export class DatabaseStorage implements IStorage {
       return await db.select().from(users).where(eq(users.role, role as any));
     }
     return await db.select().from(users);
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
   }
 
   // Property methods
@@ -169,7 +178,7 @@ export class DatabaseStorage implements IStorage {
             propertyTenants,
             and(
               eq(properties.id, propertyTenants.propertyId),
-              eq(propertyTenants.tenantId, options.userId),
+              eq(propertyTenants.userId, options.userId),
               eq(propertyTenants.isActive, true)
             )
           );
@@ -271,17 +280,31 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Property-tenant methods
-  async getPropertyTenant(id: number): Promise<PropertyTenant | undefined> {
+  async getPropertyTenant(id: number): Promise<typeof propertyTenants.$inferSelect | undefined> {
     const [propertyTenant] = await db.select().from(propertyTenants).where(eq(propertyTenants.id, id));
     return propertyTenant;
   }
 
-  async createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<PropertyTenant> {
-    const [createdPropertyTenant] = await db.insert(propertyTenants).values(propertyTenant).returning();
+  async createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<typeof propertyTenants.$inferSelect> {
+    const [createdPropertyTenant] = await db.insert(propertyTenants).values({
+      propertyId: propertyTenant.propertyId,
+      userId: propertyTenant.userId,
+      startDate: new Date(),
+      isActive: propertyTenant.isActive ?? true
+    }).returning();
     return createdPropertyTenant;
   }
 
-  async listPropertyTenants(propertyId?: number): Promise<PropertyTenant[]> {
+  async updatePropertyTenant(id: number, data: Partial<typeof propertyTenants.$inferSelect>): Promise<typeof propertyTenants.$inferSelect> {
+    const [updatedPropertyTenant] = await db
+      .update(propertyTenants)
+      .set(data)
+      .where(eq(propertyTenants.id, id))
+      .returning();
+    return updatedPropertyTenant;
+  }
+
+  async listPropertyTenants(propertyId?: number): Promise<Array<typeof propertyTenants.$inferSelect>> {
     if (propertyId) {
       return await db.select().from(propertyTenants).where(eq(propertyTenants.propertyId, propertyId));
     }
@@ -293,56 +316,46 @@ export class DatabaseStorage implements IStorage {
   }
   
   // Password reset token methods
-  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
-    const [createdToken] = await db.insert(passwordResetTokens).values(token).returning();
-    return createdToken;
+  async createPasswordResetToken(data: { userId: number; token: string; expiresAt: Date; isUsed: boolean }): Promise<typeof passwordResetTokens.$inferSelect> {
+    const [resetToken] = await db.insert(passwordResetTokens).values(data).returning();
+    return resetToken;
   }
   
-  async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
-    try {
-      console.log("Token keresése az adatbázisban:", token.substring(0, 5) + "...");
-      
-      const [resetToken] = await db.select()
-        .from(passwordResetTokens)
-        .where(eq(passwordResetTokens.token, token));
-      
-      if (!resetToken) {
-        console.log("Token nem található az adatbázisban");
-        return undefined;
-      }
-      
-      console.log("Token megtalálva, használt állapot:", resetToken.isUsed);
-      
-      // Csak akkor adjuk vissza a tokent, ha még nincs használva
-      // Ez a külön ellenőrzés segít a hibakeresésben és tisztább naplófájlokat ad
-      if (resetToken.isUsed) {
-        console.log("A token már használva van");
-        return undefined;
-      }
-      
-      return resetToken;
-    } catch (error) {
-      console.error("Hiba a token lekérésekor:", error);
-      return undefined;
-    }
+  async getPasswordResetToken(token: string): Promise<typeof passwordResetTokens.$inferSelect | undefined> {
+    const [resetToken] = await db.select().from(passwordResetTokens).where(eq(passwordResetTokens.token, token));
+    return resetToken;
   }
   
-  async markPasswordResetTokenAsUsed(id: number): Promise<void> {
-    await db.update(passwordResetTokens)
-      .set({ isUsed: true })
-      .where(eq(passwordResetTokens.id, id));
+  async markPasswordResetTokenUsed(token: string): Promise<void> {
+    await db.update(passwordResetTokens).set({ isUsed: true }).where(eq(passwordResetTokens.token, token));
+  }
+
+  // Property tenant methods
+  async getPropertyTenantByUserAndProperty(userId: number, propertyId: number): Promise<typeof propertyTenants.$inferSelect | undefined> {
+    const [propertyTenant] = await db
+      .select()
+      .from(propertyTenants)
+      .where(and(
+        eq(propertyTenants.userId, userId),
+        eq(propertyTenants.propertyId, propertyId)
+      ));
+    return propertyTenant;
+  }
+
+  async deletePasswordResetToken(id: number): Promise<void> {
+    await db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, id));
   }
 }
 
 // In-memory storage implementation for demo
 export class MemStorage implements IStorage {
-  private users: User[] = [];
+  private users: Array<typeof users.$inferSelect> = [];
   private properties: Property[] = [];
   private meters: Meter[] = [];
   private readings: Reading[] = [];
   private correctionRequests: CorrectionRequest[] = [];
-  private propertyTenants: PropertyTenant[] = [];
-  private passwordResetTokens: PasswordResetToken[] = [];
+  private propertyTenants: Array<typeof propertyTenants.$inferSelect> = [];
+  private passwordResetTokens: Array<typeof passwordResetTokens.$inferSelect> = [];
   sessionStore: session.Store;
 
   constructor() {
@@ -351,14 +364,13 @@ export class MemStorage implements IStorage {
     });
     
     // Create an admin user by default
-    // Using a password hash in the format "hash.salt" compatible with our auth system
-    // The password is "admin123456" 
     this.createUser({
       username: "admin",
       password: "108f64d2292ec8f5a74a0c8811e989ae85891f2136c17f3b77e1d224bb5146e6c1ad39e4397b974509500ad06e9986c42b604a84856f06eac6c9ba40bf3de089.af6bd46612511b3dfe2f9ccc3ad79625",
       email: "admin@tavrezsi.hu",
       name: "Admin User",
-      role: "admin"
+      role: "admin",
+      isActive: true
     }).then(() => console.log("Default admin user created"));
   }
 
@@ -371,17 +383,12 @@ export class MemStorage implements IStorage {
     return this.users.find(u => u.username === username);
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
+  async getUserByEmail(email: string): Promise<typeof users.$inferSelect | undefined> {
     return this.users.find(u => u.email === email);
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const newUser: User = {
-      ...user,
-      id: this.users.length + 1,
-      createdAt: new Date(),
-      role: user.role || "tenant" // Ensure role is not undefined
-    };
+    const newUser = { ...user, id: this.users.length + 1 } as User;
     this.users.push(newUser);
     return newUser;
   }
@@ -391,6 +398,10 @@ export class MemStorage implements IStorage {
       return this.users.filter(u => u.role === role);
     }
     return this.users;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    this.users = this.users.filter(u => u.id !== id);
   }
 
   // Property methods
@@ -422,7 +433,7 @@ export class MemStorage implements IStorage {
     // For tenant, return properties they have access to via property_tenants
     if (options.role === "tenant" && options.userId) {
       const tenantPropertyIds = this.propertyTenants
-        .filter(pt => pt.tenantId === options.userId && pt.isActive)
+        .filter(pt => pt.userId === options.userId && pt.isActive)
         .map(pt => pt.propertyId);
       
       return this.properties.filter(p => tenantPropertyIds.includes(p.id));
@@ -544,23 +555,32 @@ export class MemStorage implements IStorage {
   }
 
   // Property-tenant methods
-  async getPropertyTenant(id: number): Promise<PropertyTenant | undefined> {
+  async getPropertyTenant(id: number): Promise<typeof propertyTenants.$inferSelect | undefined> {
     return this.propertyTenants.find(pt => pt.id === id);
   }
 
-  async createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<PropertyTenant> {
-    const newPropertyTenant: PropertyTenant = {
-      ...propertyTenant,
+  async createPropertyTenant(data: typeof insertPropertyTenantSchema._type): Promise<typeof propertyTenants.$inferSelect> {
+    const propertyTenant = {
       id: this.propertyTenants.length + 1,
-      startDate: new Date(),
-      endDate: propertyTenant.endDate || null,
-      isActive: propertyTenant.isActive ?? true
+      ...data,
+      startDate: data.startDate || new Date(),
+      endDate: data.endDate || null,
+      isActive: data.isActive ?? true
     };
-    this.propertyTenants.push(newPropertyTenant);
-    return newPropertyTenant;
+    this.propertyTenants.push(propertyTenant);
+    return propertyTenant;
   }
 
-  async listPropertyTenants(propertyId?: number): Promise<PropertyTenant[]> {
+  async updatePropertyTenant(id: number, data: Partial<typeof propertyTenants.$inferSelect>): Promise<typeof propertyTenants.$inferSelect> {
+    const propertyTenant = this.propertyTenants.find(pt => pt.id === id);
+    if (!propertyTenant) {
+      throw new Error(`Property tenant not found: ${id}`);
+    }
+    Object.assign(propertyTenant, data);
+    return propertyTenant;
+  }
+
+  async listPropertyTenants(propertyId?: number): Promise<Array<typeof propertyTenants.$inferSelect>> {
     if (propertyId) {
       return this.propertyTenants.filter(pt => pt.propertyId === propertyId);
     }
@@ -569,54 +589,45 @@ export class MemStorage implements IStorage {
 
   async deletePropertyTenant(id: number): Promise<void> {
     const index = this.propertyTenants.findIndex(pt => pt.id === id);
-    if (index !== -1) {
-      this.propertyTenants.splice(index, 1);
+    if (index === -1) {
+      throw new Error(`Property tenant not found: ${id}`);
     }
+    this.propertyTenants.splice(index, 1);
   }
   
   // Password reset token methods
-  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
-    const newToken: PasswordResetToken = {
-      ...token,
+  async createPasswordResetToken(data: { userId: number; token: string; expiresAt: Date; isUsed: boolean }): Promise<typeof passwordResetTokens.$inferSelect> {
+    const resetToken = {
       id: this.passwordResetTokens.length + 1,
-      createdAt: new Date(),
-      isUsed: false
+      ...data,
+      createdAt: new Date()
     };
-    this.passwordResetTokens.push(newToken);
-    return newToken;
+    this.passwordResetTokens.push(resetToken);
+    return resetToken;
   }
   
-  async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
-    try {
-      console.log("MemStorage: Token keresése:", token.substring(0, 5) + "...");
-      
-      const resetToken = this.passwordResetTokens.find(t => t.token === token);
-      
-      if (!resetToken) {
-        console.log("MemStorage: Token nem található");
-        return undefined;
-      }
-      
-      console.log("MemStorage: Token megtalálva, használt állapot:", resetToken.isUsed);
-      
-      // Csak akkor adjuk vissza a tokent, ha még nincs használva
-      if (resetToken.isUsed) {
-        console.log("MemStorage: A token már használva van");
-        return undefined;
-      }
-      
-      return resetToken;
-    } catch (error) {
-      console.error("MemStorage: Hiba a token lekérésekor:", error);
-      return undefined;
-    }
+  async getPasswordResetToken(token: string): Promise<typeof passwordResetTokens.$inferSelect | undefined> {
+    return this.passwordResetTokens.find(rt => rt.token === token);
   }
   
-  async markPasswordResetTokenAsUsed(id: number): Promise<void> {
-    const token = this.passwordResetTokens.find(t => t.id === id);
-    if (token) {
-      token.isUsed = true;
+  async markPasswordResetTokenUsed(token: string): Promise<void> {
+    const resetToken = this.passwordResetTokens.find(rt => rt.token === token);
+    if (resetToken) {
+      resetToken.isUsed = true;
     }
+  }
+
+  // Property tenant methods
+  async getPropertyTenantByUserAndProperty(userId: number, propertyId: number): Promise<typeof propertyTenants.$inferSelect | undefined> {
+    return this.propertyTenants.find(pt => pt.userId === userId && pt.propertyId === propertyId);
+  }
+
+  async deletePasswordResetToken(id: number): Promise<void> {
+    const index = this.passwordResetTokens.findIndex(t => t.id === id);
+    if (index === -1) {
+      throw new Error(`Password reset token not found: ${id}`);
+    }
+    this.passwordResetTokens.splice(index, 1);
   }
 }
 

@@ -20,12 +20,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 
 // Schema for adding a new tenant to a property
 const addTenantSchema = z.object({
   propertyId: z.coerce.number().positive(),
-  tenantId: z.coerce.number().positive("Kötelező egy bérlőt választani"),
-  isActive: z.boolean().default(true)
+  email: z.string().email({ message: "Érvényes email címet adjon meg" }),
+  isActive: z.boolean().default(false)
 });
 
 export default function TenantsPage() {
@@ -45,8 +46,8 @@ export default function TenantsPage() {
     resolver: zodResolver(addTenantSchema),
     defaultValues: {
       propertyId: propertyIdParam ? parseInt(propertyIdParam) : 0,
-      tenantId: 0,
-      isActive: true
+      email: '',
+      isActive: false
     },
   });
 
@@ -61,26 +62,40 @@ export default function TenantsPage() {
 
   // Fetch tenants for selected property
   const { data: propertyTenants, isLoading: tenantsLoading } = useQuery<any[]>({
-    queryKey: ['/api/property-tenants', selectedPropertyId ? `propertyId=${selectedPropertyId}` : null],
+    queryKey: ['/api/property-tenants', selectedPropertyId],
+    queryFn: async () => {
+      const res = await fetch(`/api/property-tenants?propertyId=${selectedPropertyId}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch tenants');
+      }
+      return res.json();
+    },
     enabled: !!selectedPropertyId && canManageTenants,
-  });
-
-  // Fetch all users with tenant role
-  const { data: tenantUsers } = useQuery<User[]>({
-    queryKey: ['/api/users', 'role=tenant'],
-    enabled: canManageTenants && showAddTenantDialog,
   });
 
   // Add tenant mutation
   const addTenantMutation = useMutation({
     mutationFn: async (data: z.infer<typeof addTenantSchema>) => {
-      const res = await apiRequest("POST", "/api/property-tenants", data);
-      return await res.json();
+      const res = await fetch('/api/property-tenants', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      
+      const responseData = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(responseData.message || 'Failed to add tenant');
+      }
+      
+      return responseData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
-        title: "Sikeres hozzáadás",
-        description: "A bérlő sikeresen hozzáadva az ingatlanhoz",
+        title: "Sikeres meghívó",
+        description: "A bérlő meghívója sikeresen elküldve",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/property-tenants'] });
       setShowAddTenantDialog(false);
@@ -89,7 +104,7 @@ export default function TenantsPage() {
     onError: (error: Error) => {
       toast({
         title: "Hiba történt",
-        description: error.message || "Nem sikerült hozzáadni a bérlőt",
+        description: error.message || "Nem sikerült elküldeni a meghívót",
         variant: "destructive",
       });
     }
@@ -98,7 +113,14 @@ export default function TenantsPage() {
   // Remove tenant mutation
   const removeTenantMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/property-tenants/${id}`);
+      const res = await fetch(`/api/property-tenants/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || 'Failed to remove tenant');
+      }
     },
     onSuccess: () => {
       toast({
@@ -229,7 +251,7 @@ export default function TenantsPage() {
                   {propertyTenants.map((tenancy) => (
                     <TableRow key={tenancy.id}>
                       <TableCell className="font-medium">
-                        {tenancy.tenant?.name || `#${tenancy.tenantId}`}
+                        {tenancy.tenant?.name || `${tenancy.tenant?.email.split('@')[0] || '-'}`}
                       </TableCell>
                       <TableCell>
                         {tenancy.tenant?.email || '-'}
@@ -239,7 +261,11 @@ export default function TenantsPage() {
                       </TableCell>
                       <TableCell>
                         {tenancy.isActive ? (
-                          <Badge className="bg-green-100 text-green-800">Aktív</Badge>
+                          tenancy.tenant?.lastLoginAt ? (
+                            <Badge className="bg-green-100 text-green-800">Aktív</Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-600">Meghívó elküldve</Badge>
+                          )
                         ) : (
                           <Badge variant="outline" className="bg-gray-100 text-gray-800">Inaktív</Badge>
                         )}
@@ -260,7 +286,13 @@ export default function TenantsPage() {
                             <AlertDialogHeader>
                               <AlertDialogTitle>Biztosan eltávolítja a bérlőt?</AlertDialogTitle>
                               <AlertDialogDescription>
-                                Ez a művelet törli a bérlő kapcsolatát az ingatlannal.
+                                <div className="space-y-2">
+                                  <p>Ez a művelet megszünteti a bérlő hozzáférését az ingatlanhoz.</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    A bérlő fiókja megmarad, csak az ingatlanhoz való hozzáférése szűnik meg.
+                                    Ha később újra hozzá szeretné adni, új meghívót kell küldenie.
+                                  </p>
+                                </div>
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -301,9 +333,22 @@ export default function TenantsPage() {
       <Dialog open={showAddTenantDialog} onOpenChange={setShowAddTenantDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Bérlő hozzáadása</DialogTitle>
-            <DialogDescription>
-              {selectedProperty ? `${selectedProperty.name}, ${selectedProperty.address}` : 'Válasszon bérlőt az ingatlanhoz'}
+            <DialogTitle>Bérlő meghívása</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 mt-2">
+                <div>Meghívja a bérlőt az ingatlanhoz: <strong>{selectedProperty?.name}</strong></div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <p>
+                    A bérlő emailben kap egy meghívót az alábbi folyamattal:
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1">
+                    <li>A megadott email címre érkezik egy meghívó link</li>
+                    <li>A linken keresztül beállíthatja jelszavát</li>
+                    <li>A felhasználóneve az email címe lesz (@előtti rész)</li>
+                    <li>A regisztráció után azonnal hozzáférhet az ingatlan adataihoz</li>
+                  </ul>
+                </div>
+              </div>
             </DialogDescription>
           </DialogHeader>
           
@@ -311,23 +356,16 @@ export default function TenantsPage() {
             <form onSubmit={form.handleSubmit(onAddTenant)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="tenantId"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Bérlő</FormLabel>
+                    <FormLabel>Bérlő email címe</FormLabel>
                     <FormControl>
-                      <Select onValueChange={field.onChange} defaultValue={field.value.toString()}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Válasszon bérlőt" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {tenantUsers?.map((tenant) => (
-                            <SelectItem key={tenant.id} value={tenant.id.toString()}>
-                              {tenant.name} ({tenant.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input 
+                        type="email" 
+                        placeholder="pelda@email.hu" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -358,7 +396,7 @@ export default function TenantsPage() {
                   type="submit"
                   disabled={addTenantMutation.isPending}
                 >
-                  {addTenantMutation.isPending ? "Hozzáadás..." : "Hozzáadás"}
+                  {addTenantMutation.isPending ? "Meghívó küldése..." : "Meghívó küldése"}
                 </Button>
               </DialogFooter>
             </form>
