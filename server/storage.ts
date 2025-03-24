@@ -239,7 +239,7 @@ export class MemStorage implements IStorage {
     // The password is "admin123456" 
     this.createUser({
       username: "admin",
-      password: "c56d616327fb9292be5970c3a8891cb9ffa9271cbcedc1cc6fd52c5a915be46a9be3eead802e92e1b4dafa42cd161e3a79855d4cd3409ba7ae64597eb8ec0e10.8c9d0505c7118907",
+      password: "108f64d2292ec8f5a74a0c8811e989ae85891f2136c17f3b77e1d224bb5146e6c1ad39e4397b974509500ad06e9986c42b604a84856f06eac6c9ba40bf3de089.af6bd46612511b3dfe2f9ccc3ad79625",
       email: "admin@tavrezsi.hu",
       name: "Admin User",
       role: "admin"
