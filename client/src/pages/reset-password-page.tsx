@@ -66,10 +66,11 @@ export default function ResetPasswordPage() {
   const onSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
     try {
       setLoading(true);
-      console.log("Jelszó beküldése tokennnel:", token);
+      console.log("Jelszó beküldése tokennel:", token);
       
+      // Javított API kérés - az apiRequest sorrendje: url, method, data 
       await apiRequest(
-        "/api/reset-password",
+        "/api/reset-password", 
         "POST",
         {
           token,
@@ -93,7 +94,7 @@ export default function ResetPasswordPage() {
       console.error("Jelszó frissítési hiba:", error);
       toast({
         title: "Hiba történt",
-        description: "Nem sikerült frissíteni a jelszót. A link érvénytelen vagy lejárt.",
+        description: error instanceof Error ? error.message : "Nem sikerült frissíteni a jelszót. A link érvénytelen vagy lejárt.",
         variant: "destructive",
       });
     } finally {

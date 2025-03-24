@@ -643,61 +643,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Jelszó visszaállítása a token alapján
   app.post("/api/reset-password", async (req, res) => {
     try {
-      console.log("Jelszó visszaállítási kérés:", { ...req.body, newPassword: "***" });
+      console.log("Jelszó visszaállítási kérés érkezett");
+      
+      // Ellenőrizzük, hogy van-e beérkező kérés
+      if (!req.body) {
+        console.error("Nincs request body");
+        return res.status(400).json({ message: "Érvénytelen kérés" });
+      }
+      
+      console.log("Request body:", { ...req.body, newPassword: req.body.newPassword ? "***" : undefined });
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
-        console.log("Hiányzó adatok a jelszó visszaállításhoz");
-        return res.status(400).json({ message: "Hiányzó adatok" });
+        console.log("Hiányzó adatok a jelszó visszaállításhoz. Token:", !!token, "Új jelszó:", !!newPassword);
+        return res.status(400).json({ message: "A token és az új jelszó megadása kötelező" });
       }
 
+      console.log("Token ellenőrzése:", token.substring(0, 5) + "...");
+      
       // Token ellenőrzése
       const resetToken = await storage.getPasswordResetTokenByToken(token);
-      console.log("Talált token:", resetToken ? { ...resetToken, token: "***" } : "nincs találat");
       
       if (!resetToken) {
+        console.error("Token nem található az adatbázisban");
         return res.status(400).json({ message: "Érvénytelen vagy lejárt token" });
       }
+      
+      console.log("Talált token adatai:", { 
+        id: resetToken.id,
+        userId: resetToken.userId,
+        expiresAt: resetToken.expiresAt,
+        isUsed: resetToken.isUsed,
+        createdAt: resetToken.createdAt
+      });
 
       // Ellenőrizzük, hogy a token még nem járt-e le
       const now = new Date();
-      console.log("Token lejárati idő:", resetToken.expiresAt, "Most:", now);
+      console.log("Token lejárati ellenőrzés:", resetToken.expiresAt.toISOString(), "vs", now.toISOString());
+      
       if (resetToken.expiresAt < now) {
         console.log("A token lejárt");
-        return res.status(400).json({ message: "A token lejárt" });
+        return res.status(400).json({ message: "A jelszó-visszaállító link lejárt" });
       }
 
       // Ellenőrizzük, hogy a token már használt-e
       console.log("Token használt állapota:", resetToken.isUsed);
       if (resetToken.isUsed) {
         console.log("A token már fel lett használva");
-        return res.status(400).json({ message: "Ez a token már fel lett használva" });
+        return res.status(400).json({ message: "Ez a jelszó-visszaállító link már fel lett használva" });
       }
 
       // Ellenőrizzük, hogy létezik-e a felhasználó
       const user = await storage.getUser(resetToken.userId);
       if (!user) {
+        console.error("Felhasználó nem található:", resetToken.userId);
         return res.status(400).json({ message: "Felhasználó nem található" });
       }
+      
+      console.log("Felhasználó megtalálva:", user.id, user.username);
 
       // Jelszó hashelése
       const hashedPassword = await hashPassword(newPassword);
+      console.log("Új jelszó sikeresen hashelve");
 
-      // Felhasználó jelszavának frissítése
-      // Mivel nincs updateUser metódusunk, egy ideiglenes megoldás:
-      await db.update(users)
-        .set({ password: hashedPassword })
-        .where(eq(users.id, resetToken.userId));
+      try {
+        // Felhasználó jelszavának frissítése
+        await db.update(users)
+          .set({ password: hashedPassword })
+          .where(eq(users.id, resetToken.userId));
+        
+        console.log("Jelszó sikeresen frissítve");
+      } catch (updateError) {
+        console.error("Hiba a jelszó frissítése során:", updateError);
+        return res.status(500).json({ message: "Nem sikerült frissíteni a jelszót" });
+      }
 
-      // Token használtként megjelölése
-      await storage.markPasswordResetTokenAsUsed(resetToken.id);
+      try {
+        // Token használtként megjelölése
+        await storage.markPasswordResetTokenAsUsed(resetToken.id);
+        console.log("Token sikeresen megjelölve használtként");
+      } catch (tokenError) {
+        console.error("Hiba a token használtként jelölése során:", tokenError);
+        // Nem állítjuk meg a folyamatot, mert a jelszó már frissítve lett
+      }
 
-      // Üdvözlő email küldése
-      await sendWelcomeEmail(user);
+      try {
+        // Üdvözlő email küldése
+        await sendWelcomeEmail(user);
+        console.log("Üdvözlő email sikeresen elküldve");
+      } catch (emailError) {
+        console.error("Hiba az üdvözlő email küldése során:", emailError);
+        // Nem állítjuk meg a folyamatot, mert a jelszó már frissítve lett
+      }
 
       return res.status(200).json({ message: "A jelszó sikeresen frissítve" });
     } catch (error) {
-      console.error("Hiba a jelszó visszaállítása során:", error);
+      console.error("Nem várt hiba a jelszó visszaállítása során:", error);
       return res.status(500).json({ message: "Hiba történt a jelszó visszaállítása során" });
     }
   });

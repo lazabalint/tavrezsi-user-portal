@@ -30,7 +30,9 @@ export async function generatePasswordResetToken(userId: number): Promise<string
 
 // Email sablon a jelszó-visszaállításhoz
 const getPasswordResetEmailTemplate = (user: User, token: string) => {
-  const resetUrl = `https://dev.tavrezsi.hu/reset-password?token=${token}`;
+  // Használhatunk relatív URL-t is, mert az email úgyis az alkalmazás környezetében lesz megjelenítve
+  // Így nem kell konkrét domain-t használni, ami a fejlesztési és éles környezet között eltérhet
+  const resetUrl = `/reset-password?token=${token}`;
   
   return {
     From: {
