@@ -104,12 +104,14 @@ export default function DashboardPage() {
             </div>
             <h3 className="text-xl font-medium mb-2">Nincsenek ingatlanok</h3>
             <p className="text-gray-500 mb-4">Még nem rendelkezik ingatlanokkal.</p>
-            <Button asChild>
-              <Link href="/add-property">
-                <Plus className="mr-2 h-4 w-4" />
-                Új ingatlan hozzáadása
-              </Link>
-            </Button>
+            {useAuth().user?.role === 'admin' && (
+              <Button asChild>
+                <Link href="/add-property">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Új ingatlan hozzáadása
+                </Link>
+              </Button>
+            )}
           </div>
         )}
       </div>
@@ -170,12 +172,14 @@ export default function DashboardPage() {
           </div>
           <h3 className="text-xl font-medium mb-2">Nincsenek mérőórák</h3>
           <p className="text-gray-500 mb-4">A kiválasztott ingatlanhoz még nincsenek mérőórák hozzárendelve.</p>
-          <Button asChild>
-            <Link href="/add-meter">
-              <Plus className="mr-2 h-4 w-4" />
-              Új mérőóra hozzáadása
-            </Link>
-          </Button>
+          {useAuth().user?.role === 'admin' && (
+            <Button asChild>
+              <Link href="/add-meter">
+                <Plus className="mr-2 h-4 w-4" />
+                Új mérőóra hozzáadása
+              </Link>
+            </Button>
+          )}
         </div>
       )}
 
