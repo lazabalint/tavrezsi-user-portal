@@ -4,7 +4,8 @@ import {
   meters, type Meter, type InsertMeter,
   readings, type Reading, type InsertReading, 
   correctionRequests, type CorrectionRequest, type InsertCorrectionRequest,
-  propertyTenants, type PropertyTenant, type InsertPropertyTenant
+  propertyTenants, type PropertyTenant, type InsertPropertyTenant,
+  passwordResetTokens, type PasswordResetToken, type InsertPasswordResetToken
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, isNull, InferSelectModel, SQL, is } from "drizzle-orm";
@@ -50,6 +51,11 @@ export interface IStorage {
   createPropertyTenant(propertyTenant: InsertPropertyTenant): Promise<PropertyTenant>;
   listPropertyTenants(propertyId?: number): Promise<PropertyTenant[]>;
   deletePropertyTenant(id: number): Promise<void>;
+  
+  // Password reset token methods
+  createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken>;
+  getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined>;
+  markPasswordResetTokenAsUsed(id: number): Promise<void>;
   
   // Session store
   sessionStore: session.Store;
@@ -285,6 +291,28 @@ export class DatabaseStorage implements IStorage {
   async deletePropertyTenant(id: number): Promise<void> {
     await db.delete(propertyTenants).where(eq(propertyTenants.id, id));
   }
+  
+  // Password reset token methods
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const [createdToken] = await db.insert(passwordResetTokens).values(token).returning();
+    return createdToken;
+  }
+  
+  async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
+    const [resetToken] = await db.select()
+      .from(passwordResetTokens)
+      .where(and(
+        eq(passwordResetTokens.token, token),
+        eq(passwordResetTokens.isUsed, false)
+      ));
+    return resetToken;
+  }
+  
+  async markPasswordResetTokenAsUsed(id: number): Promise<void> {
+    await db.update(passwordResetTokens)
+      .set({ isUsed: true })
+      .where(eq(passwordResetTokens.id, id));
+  }
 }
 
 // In-memory storage implementation for demo
@@ -295,6 +323,7 @@ export class MemStorage implements IStorage {
   private readings: Reading[] = [];
   private correctionRequests: CorrectionRequest[] = [];
   private propertyTenants: PropertyTenant[] = [];
+  private passwordResetTokens: PasswordResetToken[] = [];
   sessionStore: session.Store;
 
   constructor() {
@@ -523,6 +552,29 @@ export class MemStorage implements IStorage {
     const index = this.propertyTenants.findIndex(pt => pt.id === id);
     if (index !== -1) {
       this.propertyTenants.splice(index, 1);
+    }
+  }
+  
+  // Password reset token methods
+  async createPasswordResetToken(token: InsertPasswordResetToken): Promise<PasswordResetToken> {
+    const newToken: PasswordResetToken = {
+      ...token,
+      id: this.passwordResetTokens.length + 1,
+      createdAt: new Date(),
+      isUsed: false
+    };
+    this.passwordResetTokens.push(newToken);
+    return newToken;
+  }
+  
+  async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
+    return this.passwordResetTokens.find(t => t.token === token && !t.isUsed);
+  }
+  
+  async markPasswordResetTokenAsUsed(id: number): Promise<void> {
+    const token = this.passwordResetTokens.find(t => t.id === id);
+    if (token) {
+      token.isUsed = true;
     }
   }
 }
