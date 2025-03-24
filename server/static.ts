@@ -13,9 +13,9 @@ const __dirname = dirname(__filename);
  * in vite.ts which has an incorrect path.
  */
 export function serveProductionStatic(app: Express) {
-  // The correct path for the production build based on the build script in package.json
-  // Vite builds the client into the dist folder by default
-  const distPath = path.resolve(__dirname, "..", "dist");
+  // The correct path for the production build based on vite.config.ts
+  // Vite builds the client into the dist/public folder as specified in the config
+  const distPath = path.resolve(__dirname, "..", "dist", "public");
   
   // Check if the build directory exists
   if (!fs.existsSync(distPath)) {
