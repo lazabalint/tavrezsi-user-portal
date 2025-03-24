@@ -17,9 +17,9 @@ export default function PropertiesPage() {
   const { user } = useAuth();
   const [deletePropertyId, setDeletePropertyId] = useState<number | null>(null);
 
-  // Fetch properties
+  // Fetch properties, with refetch on user change
   const { data: properties, isLoading } = useQuery<Property[]>({
-    queryKey: ['/api/properties'],
+    queryKey: ['/api/properties', user?.id, user?.role], // Include user in the key to refetch on user change
   });
 
   // Fetch users (for owners)
@@ -45,7 +45,8 @@ export default function PropertiesPage() {
         title: "Sikeres törlés",
         description: "Az ingatlan sikeresen törölve lett",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/properties'] }); // Also invalidate any user-specific queries
+      queryClient.invalidateQueries({ queryKey: ['/api/properties', user?.id, user?.role] });
       setDeletePropertyId(null);
     },
     onError: (error: Error) => {
