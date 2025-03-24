@@ -66,8 +66,8 @@ export default function AuthPage() {
       setResetPasswordLoading(true);
       
       const response = await apiRequest(
-        "/api/request-password-reset",
         "POST",
+        "/api/request-password-reset",
         values
       );
       
