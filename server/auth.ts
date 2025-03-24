@@ -159,13 +159,15 @@ async function createAdminUser() {
           username: "admin",
           password: await hashPassword("admin123456"),
           email: "admin@tavrezsi.hu",
-          name: "Admin Felhasználó",
+          name: "Admin User",
           role: "admin",
         });
         console.log("Admin user created");
       } catch (createError) {
         console.error("Failed to create admin user:", createError);
       }
+    } else {
+      console.log("Admin user already exists");
     }
   } catch (err) {
     console.error("Error in createAdminUser function:", err);

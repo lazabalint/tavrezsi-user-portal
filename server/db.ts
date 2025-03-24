@@ -1,5 +1,5 @@
-import { drizzle } from "drizzle-orm/neon-serverless";
-import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 
 // Flag to track the state of the database connection
 let db: any;
@@ -9,17 +9,20 @@ if (!process.env.DATABASE_URL) {
 }
 
 try {
-  // Try to use Neon serverless
-  const sql = neon(process.env.DATABASE_URL);
-  db = drizzle(sql);
+  // Use postgres.js instead of @neondatabase/serverless
+  const client = postgres(process.env.DATABASE_URL, { 
+    prepare: false, // Important for compatibility with Neon serverless
+    ssl: { rejectUnauthorized: false } // For secure connections to Neon
+  });
+  db = drizzle(client);
   console.log("Connected to Neon serverless database");
 } catch (error) {
   console.error("Error initializing database connection:", error);
   
   // Create a dummy db instance as a last resort
   try {
-    const fallbackSql = neon("postgresql://user:password@localhost:5432/test");
-    db = drizzle(fallbackSql);
+    const fallbackClient = postgres("postgresql://user:password@localhost:5432/test", { prepare: false });
+    db = drizzle(fallbackClient);
     console.error("Using dummy database connection - app will have limited functionality");
   } catch (fallbackError) {
     console.error("Critical error setting up database:", fallbackError);
