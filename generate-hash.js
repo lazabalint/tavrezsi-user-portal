@@ -1,17 +1,17 @@
-import crypto from 'crypto';
+import { scrypt, randomBytes } from 'crypto';
 import { promisify } from 'util';
 
-const scryptAsync = promisify(crypto.scrypt);
+const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password) {
-  const salt = crypto.randomBytes(16).toString("hex");
+  const salt = randomBytes(16).toString("hex");
   const buf = await scryptAsync(password, salt, 64);
   return `${buf.toString("hex")}.${salt}`;
 }
 
 async function main() {
-  const hash = await hashPassword("admin123456");
-  console.log("Hash for 'admin123456':", hash);
+  const password = process.argv[2] || "admin123456";
+  console.log(await hashPassword(password));
 }
 
-main().catch(console.error);
+main();
