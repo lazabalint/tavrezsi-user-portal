@@ -30,4 +30,4 @@ try {
   console.error("Using dummy database connection - app will have limited functionality");
 }
 
-export { db };
+export { db, DATABASE_URL };

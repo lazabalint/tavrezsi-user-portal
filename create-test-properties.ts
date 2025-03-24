@@ -29,7 +29,7 @@ const main = async () => {
       await storage.createProperty({
         name: "Budapest Lakás",
         address: "Budapest, Petőfi utca 1.",
-        owner_id: owner1.id
+        ownerId: owner1.id
       });
       console.log("Property 1 created for Owner1");
     } catch (error) {
@@ -40,7 +40,7 @@ const main = async () => {
       await storage.createProperty({
         name: "Debrecen Ház",
         address: "Debrecen, Kossuth tér 5.",
-        owner_id: owner1.id
+        ownerId: owner1.id
       });
       console.log("Property 2 created for Owner1");
     } catch (error) {
@@ -52,7 +52,7 @@ const main = async () => {
       await storage.createProperty({
         name: "Szeged Villa",
         address: "Szeged, Tisza part 10.",
-        owner_id: owner2.id
+        ownerId: owner2.id
       });
       console.log("Property created for Owner2");
     } catch (error) {
