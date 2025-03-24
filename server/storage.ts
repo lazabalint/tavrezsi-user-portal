@@ -299,13 +299,32 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
-    const [resetToken] = await db.select()
-      .from(passwordResetTokens)
-      .where(and(
-        eq(passwordResetTokens.token, token),
-        eq(passwordResetTokens.isUsed, false)
-      ));
-    return resetToken;
+    try {
+      console.log("Token keresése az adatbázisban:", token.substring(0, 5) + "...");
+      
+      const [resetToken] = await db.select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token));
+      
+      if (!resetToken) {
+        console.log("Token nem található az adatbázisban");
+        return undefined;
+      }
+      
+      console.log("Token megtalálva, használt állapot:", resetToken.isUsed);
+      
+      // Csak akkor adjuk vissza a tokent, ha még nincs használva
+      // Ez a külön ellenőrzés segít a hibakeresésben és tisztább naplófájlokat ad
+      if (resetToken.isUsed) {
+        console.log("A token már használva van");
+        return undefined;
+      }
+      
+      return resetToken;
+    } catch (error) {
+      console.error("Hiba a token lekérésekor:", error);
+      return undefined;
+    }
   }
   
   async markPasswordResetTokenAsUsed(id: number): Promise<void> {
@@ -568,7 +587,29 @@ export class MemStorage implements IStorage {
   }
   
   async getPasswordResetTokenByToken(token: string): Promise<PasswordResetToken | undefined> {
-    return this.passwordResetTokens.find(t => t.token === token && !t.isUsed);
+    try {
+      console.log("MemStorage: Token keresése:", token.substring(0, 5) + "...");
+      
+      const resetToken = this.passwordResetTokens.find(t => t.token === token);
+      
+      if (!resetToken) {
+        console.log("MemStorage: Token nem található");
+        return undefined;
+      }
+      
+      console.log("MemStorage: Token megtalálva, használt állapot:", resetToken.isUsed);
+      
+      // Csak akkor adjuk vissza a tokent, ha még nincs használva
+      if (resetToken.isUsed) {
+        console.log("MemStorage: A token már használva van");
+        return undefined;
+      }
+      
+      return resetToken;
+    } catch (error) {
+      console.error("MemStorage: Hiba a token lekérésekor:", error);
+      return undefined;
+    }
   }
   
   async markPasswordResetTokenAsUsed(id: number): Promise<void> {

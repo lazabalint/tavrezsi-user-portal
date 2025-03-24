@@ -32,27 +32,44 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
-    // Parse URL parameters
-    const params = new URLSearchParams(search);
-    const tokenParam = params.get("token");
+    console.log("Reset oldal inicializálása. Aktuális keresés paraméter:", search);
+    
+    try {
+      // Parse URL parameters
+      const params = new URLSearchParams(search);
+      console.log("URL paraméterek:", Object.fromEntries(params.entries()));
+      
+      const tokenParam = params.get("token");
+      console.log("Token paraméter:", tokenParam);
 
-    console.log("Token paraméter:", tokenParam);
+      if (!tokenParam) {
+        console.error("Nincs token paraméter az URL-ben");
+        toast({
+          title: "Érvénytelen link",
+          description: "A jelszó-visszaállító link érvénytelen vagy lejárt. Kérjük, ellenőrizze az e-mailben kapott linket.",
+          variant: "destructive",
+        });
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          setLocation("/auth");
+        }, 3000);
+        return;
+      }
 
-    if (!tokenParam) {
+      console.log("Token paraméter megtalálva, hossz:", tokenParam.length);
+      setToken(tokenParam);
+      console.log("Token beállítva:", tokenParam.substring(0, 5) + "...");
+    } catch (error) {
+      console.error("Hiba a token paraméter kinyerésekor:", error);
       toast({
-        title: "Érvénytelen link",
-        description: "A jelszó-visszaállító link érvénytelen vagy lejárt.",
+        title: "Feldolgozási hiba",
+        description: "Hiba történt a jelszó-visszaállító link feldolgozása során.",
         variant: "destructive",
       });
-      // Redirect to login after a short delay
       setTimeout(() => {
         setLocation("/auth");
       }, 3000);
-      return;
     }
-
-    setToken(tokenParam);
-    console.log("Token beállítva:", tokenParam);
   }, [search, toast, setLocation]);
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
