@@ -643,26 +643,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Jelszó visszaállítása a token alapján
   app.post("/api/reset-password", async (req, res) => {
     try {
+      console.log("Jelszó visszaállítási kérés:", { ...req.body, newPassword: "***" });
       const { token, newPassword } = req.body;
 
       if (!token || !newPassword) {
+        console.log("Hiányzó adatok a jelszó visszaállításhoz");
         return res.status(400).json({ message: "Hiányzó adatok" });
       }
 
       // Token ellenőrzése
       const resetToken = await storage.getPasswordResetTokenByToken(token);
+      console.log("Talált token:", resetToken ? { ...resetToken, token: "***" } : "nincs találat");
+      
       if (!resetToken) {
         return res.status(400).json({ message: "Érvénytelen vagy lejárt token" });
       }
 
       // Ellenőrizzük, hogy a token még nem járt-e le
       const now = new Date();
+      console.log("Token lejárati idő:", resetToken.expiresAt, "Most:", now);
       if (resetToken.expiresAt < now) {
+        console.log("A token lejárt");
         return res.status(400).json({ message: "A token lejárt" });
       }
 
       // Ellenőrizzük, hogy a token már használt-e
-      if (resetToken.used) {
+      console.log("Token használt állapota:", resetToken.isUsed);
+      if (resetToken.isUsed) {
+        console.log("A token már fel lett használva");
         return res.status(400).json({ message: "Ez a token már fel lett használva" });
       }
 

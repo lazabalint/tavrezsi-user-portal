@@ -36,6 +36,8 @@ export default function ResetPasswordPage() {
     const params = new URLSearchParams(search);
     const tokenParam = params.get("token");
 
+    console.log("Token paraméter:", tokenParam);
+
     if (!tokenParam) {
       toast({
         title: "Érvénytelen link",
@@ -50,6 +52,7 @@ export default function ResetPasswordPage() {
     }
 
     setToken(tokenParam);
+    console.log("Token beállítva:", tokenParam);
   }, [search, toast, setLocation]);
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
@@ -63,6 +66,7 @@ export default function ResetPasswordPage() {
   const onSubmit = async (values: z.infer<typeof resetPasswordSchema>) => {
     try {
       setLoading(true);
+      console.log("Jelszó beküldése tokennnel:", token);
       
       await apiRequest(
         "/api/reset-password",
@@ -73,6 +77,7 @@ export default function ResetPasswordPage() {
         }
       );
       
+      console.log("Jelszó frissítése sikeres");
       setIsSuccess(true);
       toast({
         title: "Jelszó sikeresen frissítve",
@@ -85,6 +90,7 @@ export default function ResetPasswordPage() {
         setLocation("/auth");
       }, 3000);
     } catch (error) {
+      console.error("Jelszó frissítési hiba:", error);
       toast({
         title: "Hiba történt",
         description: "Nem sikerült frissíteni a jelszót. A link érvénytelen vagy lejárt.",
