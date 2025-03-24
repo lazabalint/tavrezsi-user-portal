@@ -85,10 +85,10 @@ export default function ResetPasswordPage() {
       setLoading(true);
       console.log("Jelszó beküldése tokennel:", token);
       
-      // Javított API kérés - az apiRequest sorrendje: url, method, data 
+      // Javított API kérés - az apiRequest sorrendje: method, url, data 
       await apiRequest(
-        "/api/reset-password", 
         "POST",
+        "/api/reset-password",
         {
           token,
           newPassword: values.newPassword,
