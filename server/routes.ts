@@ -92,39 +92,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // =============== PROPERTY ROUTES ===============
   
-  // Get all properties
+  // Get all properties - with improved permission filtering
   app.get("/api/properties", authMiddleware, async (req, res) => {
     try {
-      let properties;
-      
-      console.log("Fetching properties, user role:", req.user?.role, "user id:", req.user?.id);
-      
-      // Filter properties based on user role
-      if (req.user?.role === "admin") {
-        console.log("Admin user, fetching all properties");
-        properties = await storage.listProperties();
-      } else if (req.user?.role === "owner") {
-        console.log("Owner user, fetching properties for owner ID:", req.user.id);
-        // Owner can only see their own properties - ensure we're using the correct user ID
-        const ownerId = req.user.id;
-        properties = await storage.listProperties(ownerId);
-      } else {
-        console.log("Tenant user, fetching associated properties");
-        // For tenants, get properties where they are associated via property_tenants
-        const propertyTenants = await storage.listPropertyTenants();
-        const tenantProperties = propertyTenants
-          .filter(pt => pt.tenantId === req.user?.id && pt.isActive)
-          .map(pt => pt.propertyId);
-          
-        console.log("Tenant property IDs:", tenantProperties);
-        
-        // Get all properties by IDs
-        properties = [];
-        for (const id of tenantProperties) {
-          const property = await storage.getProperty(id);
-          if (property) properties.push(property);
-        }
+      if (!req.user) {
+        return res.status(401).json({ message: "Unauthorized access" });
       }
+      
+      console.log("Fetching properties, user role:", req.user.role, "user id:", req.user.id);
+      
+      // Pass user information directly to storage layer for permission filtering
+      const properties = await storage.listProperties({
+        userId: req.user.id,
+        role: req.user.role
+      });
       
       console.log("Properties fetched successfully:", properties);
       res.json(properties);

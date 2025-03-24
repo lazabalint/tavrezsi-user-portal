@@ -119,17 +119,61 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async listProperties(ownerId?: number): Promise<Property[]> {
+  /**
+   * Lists properties based on user role and ID
+   * 
+   * @param userId The user ID
+   * @param role The user role (admin, owner, tenant)
+   * @returns List of properties filtered by user permissions
+   */
+  async listProperties(options?: { userId?: number; role?: string }): Promise<Property[]> {
     try {
-      console.log("Listing properties, ownerId filter:", ownerId);
-      let result;
-      if (ownerId) {
-        result = await db.select().from(properties).where(eq(properties.ownerId, ownerId));
-      } else {
-        result = await db.select().from(properties);
+      console.log("Listing properties with options:", options);
+      
+      // If no options provided or admin role, return all properties
+      if (!options || options.role === "admin") {
+        console.log("Admin access or no filtering, returning all properties");
+        const result = await db.select().from(properties);
+        console.log("Retrieved properties:", result);
+        return result;
       }
-      console.log("Retrieved properties:", result);
-      return result;
+      
+      // For owner, return only their properties
+      if (options.role === "owner" && options.userId) {
+        console.log("Owner access, filtering by ownerId:", options.userId);
+        const result = await db.select()
+          .from(properties)
+          .where(eq(properties.ownerId, options.userId));
+        console.log("Retrieved owner properties:", result);
+        return result;
+      }
+      
+      // For tenant, return properties they have access to via property_tenants join
+      if (options.role === "tenant" && options.userId) {
+        console.log("Tenant access, filtering by tenant associations");
+        const result = await db.select({
+            id: properties.id,
+            name: properties.name,
+            address: properties.address,
+            ownerId: properties.ownerId,
+            createdAt: properties.createdAt
+          })
+          .from(properties)
+          .innerJoin(
+            propertyTenants,
+            and(
+              eq(properties.id, propertyTenants.propertyId),
+              eq(propertyTenants.tenantId, options.userId),
+              eq(propertyTenants.isActive, true)
+            )
+          );
+        console.log("Retrieved tenant-accessible properties:", result);
+        return result;
+      }
+      
+      // Default case - no properties should be accessible
+      console.log("No properties accessible due to insufficient permissions");
+      return [];
     } catch (err) {
       console.error("Error listing properties:", err);
       throw err;
