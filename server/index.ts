@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, log } from "./vite";
+import { serveProductionStatic } from "./static";
 
 const app = express();
 app.use(express.json());
@@ -53,7 +54,8 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Use our custom serveProductionStatic function instead of the problematic one
+    serveProductionStatic(app);
   }
 
   // ALWAYS serve the app on port 5000
