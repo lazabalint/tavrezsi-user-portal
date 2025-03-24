@@ -123,13 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         properties = await storage.listProperties({ role: "owner", userId: req.user.id });
       } else if (req.user.role === "tenant") {
         // Tenant sees only their assigned properties
-        const tenancies = await storage.listPropertyTenants();
-        const propertyIds = tenancies
-          .filter(pt => pt.userId === req.user!.id && pt.isActive)
-          .map(pt => pt.propertyId);
-        
-        const allProperties = await storage.listProperties();
-        properties = allProperties.filter(p => propertyIds.includes(p.id));
+        properties = await storage.listProperties({ role: "tenant", userId: req.user.id });
       }
       
       console.log("Properties fetched successfully:", properties);
@@ -198,10 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         meters = meters.filter(m => propertyIds.includes(m.propertyId));
       } else if (req.user.role === "tenant") {
         // Tenant sees meters in their assigned properties
-        const tenancies = await storage.listPropertyTenants();
-        const propertyIds = tenancies
-          .filter(pt => pt.userId === req.user!.id && pt.isActive)
-          .map(pt => pt.propertyId);
+        // First get the tenant's assigned properties
+        const tenantProperties = await storage.listProperties({ role: "tenant", userId: req.user.id });
+        const propertyIds = tenantProperties.map(p => p.id);
         meters = meters.filter(m => propertyIds.includes(m.propertyId));
       }
       

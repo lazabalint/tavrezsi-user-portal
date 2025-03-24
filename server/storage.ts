@@ -9,7 +9,7 @@ import {
   insertUserSchema, insertPropertyTenantSchema
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, isNull, InferSelectModel, SQL, is } from "drizzle-orm";
+import { eq, and, desc, isNull, InferSelectModel, SQL, is, inArray } from "drizzle-orm";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -165,25 +165,41 @@ export class DatabaseStorage implements IStorage {
       
       // For tenant, return properties they have access to via property_tenants join
       if (options.role === "tenant" && options.userId) {
-        console.log("Tenant access, filtering by tenant associations");
-        const result = await db.select({
-            id: properties.id,
-            name: properties.name,
-            address: properties.address,
-            ownerId: properties.ownerId,
-            createdAt: properties.createdAt
-          })
-          .from(properties)
-          .innerJoin(
-            propertyTenants,
-            and(
-              eq(properties.id, propertyTenants.propertyId),
-              eq(propertyTenants.userId, options.userId),
-              eq(propertyTenants.isActive, true)
-            )
-          );
-        console.log("Retrieved tenant-accessible properties:", result);
-        return result;
+        console.log("Tenant access, filtering by tenant associations for userId:", options.userId);
+        
+        try {
+          // First get all property-tenant associations for this user
+          const tenantAssociations = await db.select()
+            .from(propertyTenants)
+            .where(
+              and(
+                eq(propertyTenants.userId, options.userId),
+                eq(propertyTenants.isActive, true)
+              )
+            );
+            
+          console.log("Tenant associations found:", tenantAssociations);
+          
+          if (tenantAssociations.length === 0) {
+            console.log("No tenant associations found for user", options.userId);
+            return [];
+          }
+          
+          // Extract property IDs
+          const propertyIds = tenantAssociations.map(pt => pt.propertyId);
+          console.log("Property IDs for tenant:", propertyIds);
+          
+          // Get properties by these IDs
+          const result = await db.select()
+            .from(properties)
+            .where(inArray(properties.id, propertyIds));
+            
+          console.log("Retrieved tenant-accessible properties:", result);
+          return result;
+        } catch (innerErr) {
+          console.error("Error retrieving tenant properties:", innerErr);
+          return [];
+        }
       }
       
       // Default case - no properties should be accessible
