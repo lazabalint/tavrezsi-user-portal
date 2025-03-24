@@ -29,16 +29,14 @@ export default function ResetPasswordPage() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState("");
-  const [userId, setUserId] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     // Parse URL parameters
     const params = new URLSearchParams(search);
     const tokenParam = params.get("token");
-    const userIdParam = params.get("userId");
 
-    if (!tokenParam || !userIdParam) {
+    if (!tokenParam) {
       toast({
         title: "Érvénytelen link",
         description: "A jelszó-visszaállító link érvénytelen vagy lejárt.",
@@ -52,7 +50,6 @@ export default function ResetPasswordPage() {
     }
 
     setToken(tokenParam);
-    setUserId(userIdParam);
   }, [search, toast, setLocation]);
 
   const form = useForm<z.infer<typeof resetPasswordSchema>>({
@@ -72,7 +69,6 @@ export default function ResetPasswordPage() {
         "POST",
         {
           token,
-          userId,
           newPassword: values.newPassword,
         }
       );

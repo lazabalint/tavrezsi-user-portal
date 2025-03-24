@@ -30,7 +30,7 @@ export async function generatePasswordResetToken(userId: number): Promise<string
 
 // Email sablon a jelszó-visszaállításhoz
 const getPasswordResetEmailTemplate = (user: User, token: string) => {
-  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:5000'}/reset-password?token=${token}&userId=${user.id}`;
+  const resetUrl = `https://dev.tavrezsi.hu/reset-password?token=${token}`;
   
   return {
     From: {

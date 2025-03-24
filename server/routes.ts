@@ -643,9 +643,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Jelszó visszaállítása a token alapján
   app.post("/api/reset-password", async (req, res) => {
     try {
-      const { token, userId, newPassword } = req.body;
+      const { token, newPassword } = req.body;
 
-      if (!token || !userId || !newPassword) {
+      if (!token || !newPassword) {
         return res.status(400).json({ message: "Hiányzó adatok" });
       }
 
@@ -655,19 +655,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Érvénytelen vagy lejárt token" });
       }
 
-      // Ellenőrizzük, hogy a token a megfelelő felhasználóhoz tartozik-e
-      if (resetToken.userId !== parseInt(userId)) {
-        return res.status(400).json({ message: "Érvénytelen token" });
-      }
-
       // Ellenőrizzük, hogy a token még nem járt-e le
       const now = new Date();
       if (resetToken.expiresAt < now) {
         return res.status(400).json({ message: "A token lejárt" });
       }
 
+      // Ellenőrizzük, hogy a token már használt-e
+      if (resetToken.used) {
+        return res.status(400).json({ message: "Ez a token már fel lett használva" });
+      }
+
       // Ellenőrizzük, hogy létezik-e a felhasználó
-      const user = await storage.getUser(parseInt(userId));
+      const user = await storage.getUser(resetToken.userId);
       if (!user) {
         return res.status(400).json({ message: "Felhasználó nem található" });
       }
@@ -679,7 +679,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Mivel nincs updateUser metódusunk, egy ideiglenes megoldás:
       await db.update(users)
         .set({ password: hashedPassword })
-        .where(eq(users.id, parseInt(userId)));
+        .where(eq(users.id, resetToken.userId));
 
       // Token használtként megjelölése
       await storage.markPasswordResetTokenAsUsed(resetToken.id);
