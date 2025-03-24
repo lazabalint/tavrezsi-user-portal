@@ -4,11 +4,18 @@ import { sql } from "drizzle-orm";
 
 async function main() {
   try {
-    console.log("Táblák létrehozása...");
+    console.log("Táblák módosítása...");
     
-    // Manuálisan létrehozzuk a password_reset_tokens táblát
+    // Először eldobjuk a táblát, ha létezik
     await db.execute(sql`
-      CREATE TABLE IF NOT EXISTS "password_reset_tokens" (
+      DROP TABLE IF EXISTS "password_reset_tokens";
+    `);
+    
+    console.log("A password_reset_tokens tábla eldobva. Újralétrehozás...");
+    
+    // Most létrehozzuk a táblát a helyes oszlopnevekkel
+    await db.execute(sql`
+      CREATE TABLE "password_reset_tokens" (
         "id" SERIAL PRIMARY KEY,
         "token" TEXT NOT NULL,
         "user_id" INTEGER NOT NULL,
