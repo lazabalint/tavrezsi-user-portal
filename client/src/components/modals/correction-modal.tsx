@@ -37,7 +37,7 @@ export function CorrectionModal({ selectedMeter, isOpen, onClose }: CorrectionMo
 
   const correctionMutation = useMutation({
     mutationFn: async (data: CorrectionFormData) => {
-      const res = await apiRequest('POST', '/api/correction-requests', data);
+      const res = await apiRequest('/api/correction-requests', 'POST', data);
       return await res.json();
     },
     onSuccess: () => {
