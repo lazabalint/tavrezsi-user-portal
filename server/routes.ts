@@ -99,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Fetching properties, user role:", req.user?.role, "user id:", req.user?.id);
       
-      // Filter by owner if user is not admin
+      // Filter properties based on user role
       if (req.user?.role === "admin") {
         console.log("Admin user, fetching all properties");
         properties = await storage.listProperties();
@@ -314,9 +314,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Property not found" });
       }
       
-      if (req.user.role !== "admin" && 
-          req.user.role !== "owner" && property.ownerId !== req.user.id &&
-          !(await isTenantOfProperty(req.user.id, property.id))) {
+      if (req.user?.role !== "admin" && 
+          !(req.user?.role === "owner" && property.ownerId === req.user.id) &&
+          !(await isTenantOfProperty(req.user!.id, property.id))) {
         return res.status(403).json({ message: "You don't have permission to view these readings" });
       }
       
@@ -348,9 +348,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Property not found" });
       }
       
-      if (req.user.role !== "admin" && 
-          !(req.user.role === "owner" && property.ownerId === req.user.id) &&
-          !(await isTenantOfProperty(req.user.id, property.id))) {
+      if (req.user?.role !== "admin" && 
+          !(req.user?.role === "owner" && property.ownerId === req.user.id) &&
+          !(await isTenantOfProperty(req.user!.id, property.id))) {
         return res.status(403).json({ message: "You don't have permission to submit readings for this meter" });
       }
       
@@ -426,9 +426,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Property not found" });
       }
       
-      if (req.user.role !== "admin" && 
-          !(req.user.role === "owner" && property.ownerId === req.user.id) &&
-          !(await isTenantOfProperty(req.user.id, property.id))) {
+      if (req.user?.role !== "admin" && 
+          !(req.user?.role === "owner" && property.ownerId === req.user.id) &&
+          !(await isTenantOfProperty(req.user!.id, property.id))) {
         return res.status(403).json({ message: "You don't have permission to submit correction requests for this meter" });
       }
       
